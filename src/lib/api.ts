@@ -19,7 +19,6 @@ export const api = {
         userType,
         name: profileRow.name,
         photoUrl: profileRow.photo_url || '',
-        college: profileRow.college || '',
         city: profileRow.location || '',
         linkedin: profileRow.linkedin_url || '',
         github: '',
@@ -94,7 +93,6 @@ export const api = {
         name: profile.name,
         photo_url: profile.photoUrl,
         bio: profile.bio,
-        college: profile.college,
         location: profile.city,
         linkedin_url: profile.linkedin
       });
