@@ -35,32 +35,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSession(session);
-        loadData(session.user.id);
-      } else {
-        setSession(null);
-        setIsLoading(false);
+    let mounted = true;
+    
+    console.log('[Auth] Initializing AppContext...');
+
+    const initSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('[Auth] getSession result:', { session: !!session, error });
+        if (mounted) {
+          if (session) {
+            setSession(session);
+            await loadData(session.user.id);
+          } else {
+            setSession(null);
+            setIsLoading(false);
+          }
+        }
+      } catch (err) {
+        console.error('[Auth] Error getting session', err);
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    initSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[Auth] onAuthStateChange event:', event, !!session);
+      if (event === 'INITIAL_SESSION') return; // We handle this manually above
+      
+      if (mounted) {
+        if (session) {
+          setSession(session);
+          await loadData(session.user.id);
+        } else {
+          setSession(null);
+          setCurrentUser(null);
+          setProfiles([]);
+          setConnections([]);
+          setMessages([]);
+          setMeetings([]);
+          setIsLoading(false);
+        }
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setSession(session);
-        loadData(session.user.id);
-      } else {
-        setSession(null);
-        setCurrentUser(null);
-        setProfiles([]);
-        setConnections([]);
-        setMessages([]);
-        setMeetings([]);
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -91,8 +114,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadData = async (userId: string) => {
     try {
+      console.log(`[Data Load] Loading data for user ${userId}...`);
       setIsLoading(true);
       const profile = await api.getProfile(userId);
+      console.log(`[Data Load] Profile lookup result:`, !!profile);
       if (profile) setCurrentUser(profile);
       else setCurrentUser(null);
 
@@ -108,9 +133,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const meets = await api.getMeetings();
       setMeetings(meets);
     } catch (err) {
-      console.error(err);
+      console.error('[Data Load] Error loading data', err);
     } finally {
       setIsLoading(false);
+      console.log(`[Data Load] Loading complete.`);
     }
   };
 

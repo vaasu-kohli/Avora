@@ -13,10 +13,10 @@ const STAGE_OPTIONS = ['Idea Stage', 'MVP Stage', 'Launched', 'Revenue Stage'];
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { setCurrentUser } = useAppContext();
+  const { session, setCurrentUser } = useAppContext();
+  const authId = session?.user?.id;
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
-  const [authId, setAuthId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<UserProfile>>({
     skills: [],
     interests: [],
@@ -30,38 +30,51 @@ export default function Onboarding() {
   const hasLoadedDraftRef = useRef(false);
   const STORAGE_KEY = 'avora_onboarding_draft';
 
+  const [isRestoring, setIsRestoring] = useState(true);
+
   useEffect(() => {
+    if (!authId) return; // Wait for authId
+    
     // Load draft data on mount
     const draft = localStorage.getItem(STORAGE_KEY);
+    console.log('[Onboarding] Initial mount. Draft exists:', !!draft);
     if (draft && !hasLoadedDraftRef.current) {
       try {
         const parsed = JSON.parse(draft);
-        if (parsed.formData || parsed.step > 1) {
-          if (parsed.formData) setFormData(prev => ({ ...prev, ...parsed.formData }));
-          if (parsed.step) setStep(parsed.step);
-          setShowRestoredNotice(true);
-          setTimeout(() => setShowRestoredNotice(false), 4000);
+        console.log('[Onboarding] Parsed draft:', parsed);
+        
+        if (parsed.userId === authId) {
+          if (parsed.formData || parsed.step > 1) {
+            if (parsed.formData) setFormData(prev => ({ ...prev, ...parsed.formData }));
+            if (parsed.step) setStep(parsed.step);
+            setShowRestoredNotice(true);
+            setTimeout(() => setShowRestoredNotice(false), 4000);
+          }
+        } else {
+          console.log('[Onboarding] Draft belongs to different user, ignoring.');
         }
       } catch (err) {
         console.error('Failed to parse onboarding draft:', err);
       }
     }
     hasLoadedDraftRef.current = true;
-  }, []);
+    setIsRestoring(false);
+  }, [authId]);
 
   useEffect(() => {
     // Auto-save when formData or step changes
-    if (!hasLoadedDraftRef.current) return;
+    if (!hasLoadedDraftRef.current || isRestoring || !authId) return;
     
     setSaveStatus('saving');
     const timer = setTimeout(() => {
-      const draftData = { formData, step };
+      const draftData = { userId: authId, formData, step };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(draftData));
+      console.log('[Onboarding] Draft saved to localStorage:', draftData);
       setSaveStatus('saved');
     }, 500); // Small debounce for UI feel
     
     return () => clearTimeout(timer);
-  }, [formData, step]);
+  }, [formData, step, isRestoring, authId]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -75,13 +88,6 @@ export default function Onboarding() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [saveStatus]);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setAuthId(session.user.id);
-      else navigate('/auth');
-    });
-  }, [navigate]);
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -136,10 +142,16 @@ export default function Onboarding() {
       photoUrl: userPhoto,
     };
     
-    await api.createProfile(newUser);
-    localStorage.removeItem(STORAGE_KEY);
-    setCurrentUser(newUser);
-    navigate('/discover');
+    try {
+      console.log('[Onboarding] Completing profile with:', newUser);
+      await api.createProfile(newUser);
+      localStorage.removeItem(STORAGE_KEY);
+      setCurrentUser(newUser);
+      navigate('/discover');
+    } catch (err: any) {
+      console.error('[Onboarding] Error during completion:', err);
+      alert('Failed to save profile: ' + (err.message || 'Unknown error'));
+    }
   };
 
   const updateForm = (updates: Partial<UserProfile>) => {

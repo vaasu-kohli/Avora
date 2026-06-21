@@ -4,10 +4,12 @@ import { UserProfile, UserType, ConnectionRequest, Message, Meeting } from '../t
 export const api = {
   async getProfile(userId: string): Promise<UserProfile | null> {
     try {
-      const { data: userRow } = await supabase.from('users').select('*').eq('id', userId).single();
+      const { data: userRow, error: uErr } = await supabase.from('users').select('*').eq('id', userId).single();
+      if (uErr && uErr.code !== 'PGRST116') throw uErr; // Not found code is PGRST116
       if (!userRow) return null;
 
-      const { data: profileRow } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
+      const { data: profileRow, error: pErr } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
+      if (pErr && pErr.code !== 'PGRST116') throw pErr;
       if (!profileRow) return null;
 
       const userType = userRow.role as UserType;
@@ -29,7 +31,8 @@ export const api = {
       };
 
       if (userType === 'founder') {
-        const { data: f } = await supabase.from('founders').select('*').eq('user_id', userId).single();
+        const { data: f, error: fErr } = await supabase.from('founders').select('*').eq('user_id', userId).single();
+        if (fErr && fErr.code !== 'PGRST116') throw fErr;
         if (f) {
           finalProfile.designation = f.designation;
           finalProfile.startupName = f.startup_name;
@@ -40,7 +43,8 @@ export const api = {
           finalProfile.lookingFor = f.looking_for || [];
         }
       } else if (userType === 'builder') {
-        const { data: b } = await supabase.from('builders').select('*').eq('user_id', userId).single();
+        const { data: b, error: bErr } = await supabase.from('builders').select('*').eq('user_id', userId).single();
+        if (bErr && bErr.code !== 'PGRST116') throw bErr;
         if (b) {
           finalProfile.skills = b.skills || [];
           finalProfile.github = b.github_url || '';
@@ -54,8 +58,10 @@ export const api = {
 
       return finalProfile;
     } catch(err) {
-      console.error(err);
-      return null;
+      console.error('[API] Error fetching profile:', err);
+      // We throw the error so that the loader can handle real failures
+      // instead of confusing them with "user does not exist".
+      throw err;
     }
   },
 
@@ -80,9 +86,11 @@ export const api = {
 
   async createProfile(profile: UserProfile): Promise<boolean> {
     try {
-      await supabase.from('users').upsert({ id: profile.id, email: '', role: profile.userType });
+      console.log('[API] Saving profile to DB:', profile);
+      const { error: userErr } = await supabase.from('users').upsert({ id: profile.id, role: profile.userType });
+      if (userErr) throw new Error(`User update error: ${userErr.message}`);
       
-      await supabase.from('profiles').upsert({
+      const { error: profileErr } = await supabase.from('profiles').upsert({
         user_id: profile.id,
         name: profile.name,
         photo_url: profile.photoUrl,
@@ -91,34 +99,39 @@ export const api = {
         location: profile.city,
         linkedin_url: profile.linkedin
       });
+      if (profileErr) throw new Error(`Profiles update error: ${profileErr.message}`);
 
       if (profile.userType === 'founder') {
-        await supabase.from('founders').upsert({
+        const { error: fErr } = await supabase.from('founders').upsert({
           user_id: profile.id,
           designation: profile.designation || '',
           startup_name: profile.startupName || '',
-          startup_description: profile.startupDescription,
+          startup_description: profile.startupDescription || '',
           startup_stage: profile.startupStage || '',
           problem_statement: profile.problemSolved || '',
-          industry: profile.industry,
-          looking_for: profile.lookingFor
+          industry: profile.industry || '',
+          looking_for: profile.lookingFor || []
         });
+        if (fErr) throw new Error(`Founders update error: ${fErr.message}`);
       } else {
-        await supabase.from('builders').upsert({
+        const { error: bErr } = await supabase.from('builders').upsert({
           user_id: profile.id,
-          skills: profile.skills,
-          github_url: profile.github,
-          leetcode_url: profile.leetcode,
-          portfolio_url: profile.portfolio,
-          resume_url: profile.resumeUrl,
-          current_projects: profile.currentProjects,
-          availability: profile.commitment
+          skills: profile.skills || [],
+          github_url: profile.github || '',
+          leetcode_url: profile.leetcode || '',
+          portfolio_url: profile.portfolio || '',
+          resume_url: profile.resumeUrl || '',
+          current_projects: profile.currentProjects || '',
+          availability: profile.commitment || ''
         });
+        if (bErr) throw new Error(`Builders update error: ${bErr.message}`);
       }
+      console.log('[API] Profile saved successfully');
       return true;
     } catch(err) {
-      console.error(err);
-      return false;
+      console.error('[API] createProfile failed:', err);
+      // throw it so we can see it in Onboarding instead of failing silently
+      throw err;
     }
   },
 

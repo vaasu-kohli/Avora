@@ -22,15 +22,20 @@ function PrivateRoute({ children, requireProfile = true }: { children: React.Rea
     return <div className="min-h-screen bg-[#0B1120] flex items-center justify-center text-white">Loading...</div>;
   }
   
+  console.log(`[PrivateRoute] path=${window.location.pathname} session=${!!session} hasProfile=${!!currentUser} requireProfile=${requireProfile}`);
+
   if (!session) {
+    console.log('[PrivateRoute] No session, redirecting to /auth');
     return <Navigate to="/auth" replace />;
   }
   
   if (requireProfile && !currentUser) {
+    console.log('[PrivateRoute] Profile required but missing, redirecting to /onboarding');
     return <Navigate to="/onboarding" replace />;
   }
 
   if (!requireProfile && currentUser) {
+    console.log('[PrivateRoute] Profile not required but present, redirecting to /discover');
     return <Navigate to="/discover" replace />;
   }
   
@@ -44,8 +49,14 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen bg-[#0B1120] flex items-center justify-center text-white">Loading...</div>;
   }
   
+  console.log(`[PublicRoute] path=${window.location.pathname} session=${!!session} hasProfile=${!!currentUser}`);
+
   if (session) {
-    if (currentUser) return <Navigate to="/discover" replace />;
+    if (currentUser) {
+      console.log('[PublicRoute] Has session+profile, redirecting to /discover');
+      return <Navigate to="/discover" replace />;
+    }
+    console.log('[PublicRoute] Has session no profile, redirecting to /onboarding');
     return <Navigate to="/onboarding" replace />;
   }
   
