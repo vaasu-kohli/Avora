@@ -46,7 +46,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           if (session) {
             setSession(session);
-            await loadData(session.user.id);
+            await loadData(session.user.id, false);
           } else {
             setSession(null);
             setIsLoading(false);
@@ -67,7 +67,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (mounted) {
         if (session) {
           setSession(session);
-          await loadData(session.user.id);
+          await loadData(session.user.id, true);
         } else {
           setSession(null);
           setCurrentUser(null);
@@ -112,10 +112,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [currentUser]);
 
-  const loadData = async (userId: string) => {
+  const loadData = async (userId: string, isBackgroundLoad = false) => {
     try {
       console.log(`[Data Load] Loading data for user ${userId}...`);
-      setIsLoading(true);
+      if (!isBackgroundLoad) setIsLoading(true);
       const profile = await api.getProfile(userId);
       console.log(`[Data Load] Profile lookup result:`, !!profile);
       if (profile) setCurrentUser(profile);
@@ -135,7 +135,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('[Data Load] Error loading data', err);
     } finally {
-      setIsLoading(false);
+      if (!isBackgroundLoad) setIsLoading(false);
       console.log(`[Data Load] Loading complete.`);
     }
   };

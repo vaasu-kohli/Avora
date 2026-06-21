@@ -4,30 +4,39 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create Users table (extends auth.users)
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT,
   role TEXT CHECK (role IN ('founder', 'builder', 'none')) DEFAULT 'none',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+-- Secure role-level permissions (Postgres grants)
+GRANT SELECT, INSERT, UPDATE ON TABLE users TO authenticated;
+GRANT SELECT ON TABLE users TO anon;
+GRANT ALL ON TABLE users TO service_role;
+
 -- Enable RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users are viewable by everyone." ON users;
 CREATE POLICY "Users are viewable by everyone."
   ON users FOR SELECT
   USING ( true );
 
+DROP POLICY IF EXISTS "Users can insert their own record." ON users;
 CREATE POLICY "Users can insert their own record."
   ON users FOR INSERT
   WITH CHECK ( auth.uid() = id );
 
+DROP POLICY IF EXISTS "Users can update their own record." ON users;
 CREATE POLICY "Users can update their own record."
   ON users FOR UPDATE
-  USING ( auth.uid() = id );
+  USING ( auth.uid() = id )
+  WITH CHECK ( auth.uid() = id );
 
 -- Create Profiles table
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE PRIMARY KEY,
   name TEXT NOT NULL,
   photo_url TEXT,
@@ -37,22 +46,31 @@ CREATE TABLE profiles (
   linkedin_url TEXT
 );
 
+-- Secure role-level permissions
+GRANT SELECT, INSERT, UPDATE ON TABLE profiles TO authenticated;
+GRANT SELECT ON TABLE profiles TO anon;
+GRANT ALL ON TABLE profiles TO service_role;
+
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Profiles are viewable by everyone." ON profiles;
 CREATE POLICY "Profiles are viewable by everyone."
   ON profiles FOR SELECT
   USING ( true );
 
+DROP POLICY IF EXISTS "Users can insert their own profile." ON profiles;
 CREATE POLICY "Users can insert their own profile."
   ON profiles FOR INSERT
   WITH CHECK ( auth.uid() = user_id );
 
+DROP POLICY IF EXISTS "Users can update their own profile." ON profiles;
 CREATE POLICY "Users can update their own profile."
   ON profiles FOR UPDATE
-  USING ( auth.uid() = user_id );
+  USING ( auth.uid() = user_id )
+  WITH CHECK ( auth.uid() = user_id );
 
 -- Create Founders table
-CREATE TABLE founders (
+CREATE TABLE IF NOT EXISTS founders (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE PRIMARY KEY,
   designation TEXT NOT NULL,
   startup_name TEXT NOT NULL,
@@ -63,22 +81,31 @@ CREATE TABLE founders (
   looking_for TEXT[]
 );
 
+-- Secure role-level permissions
+GRANT SELECT, INSERT, UPDATE ON TABLE founders TO authenticated;
+GRANT SELECT ON TABLE founders TO anon;
+GRANT ALL ON TABLE founders TO service_role;
+
 ALTER TABLE founders ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Founder profiles are viewable by everyone." ON founders;
 CREATE POLICY "Founder profiles are viewable by everyone."
   ON founders FOR SELECT
   USING ( true );
 
+DROP POLICY IF EXISTS "Users can insert their own founder profile." ON founders;
 CREATE POLICY "Users can insert their own founder profile."
   ON founders FOR INSERT
   WITH CHECK ( auth.uid() = user_id );
 
+DROP POLICY IF EXISTS "Users can update their own founder profile." ON founders;
 CREATE POLICY "Users can update their own founder profile."
   ON founders FOR UPDATE
-  USING ( auth.uid() = user_id );
+  USING ( auth.uid() = user_id )
+  WITH CHECK ( auth.uid() = user_id );
 
 -- Create Builders table
-CREATE TABLE builders (
+CREATE TABLE IF NOT EXISTS builders (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE PRIMARY KEY,
   skills TEXT[],
   github_url TEXT,
@@ -89,19 +116,27 @@ CREATE TABLE builders (
   availability TEXT
 );
 
+-- Secure role-level permissions
+GRANT SELECT, INSERT, UPDATE ON TABLE builders TO authenticated;
+GRANT SELECT ON TABLE builders TO anon;
+GRANT ALL ON TABLE builders TO service_role;
+
 ALTER TABLE builders ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Builder profiles are viewable by everyone."
   ON builders FOR SELECT
   USING ( true );
 
+DROP POLICY IF EXISTS "Users can insert their own builder profile." ON builders;
 CREATE POLICY "Users can insert their own builder profile."
   ON builders FOR INSERT
   WITH CHECK ( auth.uid() = user_id );
 
+DROP POLICY IF EXISTS "Users can update their own builder profile." ON builders;
 CREATE POLICY "Users can update their own builder profile."
   ON builders FOR UPDATE
-  USING ( auth.uid() = user_id );
+  USING ( auth.uid() = user_id )
+  WITH CHECK ( auth.uid() = user_id );
 
 -- Create Connections table
 CREATE TABLE connections (

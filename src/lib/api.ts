@@ -37,7 +37,6 @@ export const api = {
           finalProfile.designation = f.designation;
           finalProfile.startupName = f.startup_name;
           finalProfile.startupDescription = f.startup_description || '';
-          finalProfile.problemSolved = f.problem_statement;
           finalProfile.industry = f.industry || '';
           finalProfile.startupStage = f.startup_stage;
           finalProfile.lookingFor = f.looking_for || [];
@@ -108,7 +107,6 @@ export const api = {
           startup_name: profile.startupName || '',
           startup_description: profile.startupDescription || '',
           startup_stage: profile.startupStage || '',
-          problem_statement: profile.problemSolved || '',
           industry: profile.industry || '',
           looking_for: profile.lookingFor || []
         });
