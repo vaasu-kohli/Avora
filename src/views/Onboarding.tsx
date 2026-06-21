@@ -24,7 +24,57 @@ export default function Onboarding() {
     photoUrl: ''
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'none'>('none');
+  const [showRestoredNotice, setShowRestoredNotice] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasLoadedDraftRef = useRef(false);
+  const STORAGE_KEY = 'avora_onboarding_draft';
+
+  useEffect(() => {
+    // Load draft data on mount
+    const draft = localStorage.getItem(STORAGE_KEY);
+    if (draft && !hasLoadedDraftRef.current) {
+      try {
+        const parsed = JSON.parse(draft);
+        if (parsed.formData || parsed.step > 1) {
+          if (parsed.formData) setFormData(prev => ({ ...prev, ...parsed.formData }));
+          if (parsed.step) setStep(parsed.step);
+          setShowRestoredNotice(true);
+          setTimeout(() => setShowRestoredNotice(false), 4000);
+        }
+      } catch (err) {
+        console.error('Failed to parse onboarding draft:', err);
+      }
+    }
+    hasLoadedDraftRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    // Auto-save when formData or step changes
+    if (!hasLoadedDraftRef.current) return;
+    
+    setSaveStatus('saving');
+    const timer = setTimeout(() => {
+      const draftData = { formData, step };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draftData));
+      setSaveStatus('saved');
+    }, 500); // Small debounce for UI feel
+    
+    return () => clearTimeout(timer);
+  }, [formData, step]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (saveStatus === 'saving') {
+        const message = "Your progress is still saving. Are you sure you want to leave?";
+        e.returnValue = message;
+        return message;
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [saveStatus]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -87,6 +137,7 @@ export default function Onboarding() {
     };
     
     await api.createProfile(newUser);
+    localStorage.removeItem(STORAGE_KEY);
     setCurrentUser(newUser);
     navigate('/discover');
   };
@@ -307,12 +358,43 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {step > 1 && (
-          <button onClick={prevStep} className="mb-8 flex items-center text-sm font-medium text-white/50 hover:text-white transition-colors">
-            <ChevronLeft className="w-4 h-4 mr-1" /> Back
-          </button>
+      <AnimatePresence>
+        {showRestoredNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 bg-[#3B82F6]/10 border border-[#3B82F6]/30 text-[#3B82F6] px-4 py-2 rounded-full text-sm font-medium z-50 backdrop-blur-md"
+          >
+            Continuing where you left off
+          </motion.div>
         )}
+      </AnimatePresence>
+
+      <div className="w-full max-w-md">
+        <div className="flex justify-between items-center mb-8 h-6">
+          {step > 1 ? (
+            <button onClick={prevStep} className="flex items-center text-sm font-medium text-white/50 hover:text-white transition-colors">
+              <ChevronLeft className="w-4 h-4 mr-1" /> Back
+            </button>
+          ) : (
+            <div></div> // Placeholder for alignment
+          )}
+          
+          {saveStatus !== 'none' && (
+            <div className="text-xs font-medium text-white/40 flex items-center gap-1.5">
+              {saveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Draft saved
+                </>
+              )}
+            </div>
+          )}
+        </div>
         
         <div className="w-full h-1.5 bg-white/10 rounded-full mb-8 overflow-hidden">
           <motion.div 
