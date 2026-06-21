@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAppContext } from '../context/AppContext';
 import { getMatchReasons } from '../lib/matching';
-import { X, Heart, MapPin, Briefcase, GraduationCap, Github, Linkedin, ExternalLink, Check, Send } from 'lucide-react';
+import { X, Heart, MapPin, Briefcase, GraduationCap, Github, Linkedin, ExternalLink, Check, Send, Info, MessageCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { UserProfile } from '../types';
 
@@ -16,6 +16,7 @@ export default function Discovery() {
     
     const unseen = profiles.filter(p => 
       p.id !== currentUser.id && 
+      p.userType !== currentUser.userType && // Only show opposite type
       !seenProfiles.includes(p.id) &&
       !connections.some(c => (c.toUserId === p.id && c.fromUserId === currentUser.id) || (c.fromUserId === p.id && c.toUserId === currentUser.id))
     );
@@ -31,6 +32,14 @@ export default function Discovery() {
 
   const [showIntroModal, setShowIntroModal] = useState(false);
   const [introMessage, setIntroMessage] = useState('');
+
+  const hasConnection = useMemo(() => {
+    if (!currentUser || !currentProfile) return false;
+    return connections.some(c => 
+      (c.toUserId === currentProfile.id && c.fromUserId === currentUser.id) || 
+      (c.fromUserId === currentProfile.id && c.toUserId === currentUser.id)
+    );
+  }, [connections, currentProfile, currentUser]);
 
   const performConnection = (message?: string) => {
     if (!currentProfile) return;
@@ -54,7 +63,7 @@ export default function Discovery() {
         setCurrentIndex(prev => prev + 1);
       }, 300);
     } else {
-      setShowIntroModal(true);
+      performConnection();
     }
   };
 
@@ -93,53 +102,111 @@ export default function Discovery() {
             {showDetail ? (
               <ProfileDetailView profile={currentProfile} matchReasons={matchReasons} onClose={() => setShowDetail(false)} />
             ) : (
-              <div className="flex-1 relative cursor-pointer group" onClick={() => setShowDetail(true)}>
-                {/* Photo & Gradient */}
-                <div className="absolute inset-0 z-0">
-                  <img src={currentProfile.photoUrl} alt={currentProfile.name} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0B1120] via-[#0B1120]/60 to-transparent" />
-                </div>
-                
-                {/* Info Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 z-10 flex flex-col justify-end">
-                  {matchReasons.length > 0 && (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 w-fit mb-3">
-                      <Check className="w-3 h-3 text-[#14B8A6]" />
-                      <span className="text-[10px] text-white font-medium">{matchReasons[0]}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <h2 className="text-3xl font-bold text-white">{currentProfile.name}</h2>
-                    <span className="text-sm px-2 py-0.5 rounded bg-white/10 text-white/80 capitalize border border-white/10">{currentProfile.userType}</span>
-                  </div>
-                  
-                  {(currentProfile.userType === 'founder' && currentProfile.startupName) && (
-                    <p className="text-white/80 font-medium text-lg mb-2 flex items-center gap-2">
-                       <Briefcase className="w-4 h-4 text-[#3B82F6]" /> {currentProfile.startupName}
-                    </p>
-                  )}
-                  
-                  <p className="text-white/70 line-clamp-2 text-sm mb-4">
-                    {currentProfile.bio}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {currentProfile.skills.slice(0, 3).map(skill => (
-                      <span key={skill} className="text-[10px] bg-white/10 border border-white/10 px-2 py-1 rounded-md text-white/90">
-                        {skill}
-                      </span>
-                    ))}
-                    {currentProfile.skills.length > 3 && (
-                      <span className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded-md text-white/50">+{currentProfile.skills.length - 3}</span>
+              <div className="flex-1 relative cursor-pointer group flex flex-col" onClick={() => setShowDetail(true)}>
+                {currentProfile.userType === 'founder' ? (
+                  <div className="flex flex-col h-full bg-gradient-to-br from-[#0B1120] to-[#111827] p-6 pt-8 relative">
+                    {matchReasons.length > 0 && (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 w-fit mb-6">
+                        <Check className="w-3 h-3 text-[#14B8A6]" />
+                        <span className="text-[10px] text-white font-medium">{matchReasons[0]}</span>
+                      </div>
                     )}
+                    
+                    <div className="flex-1 flex flex-col pt-4">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#3B82F6]/20 to-[#8B5CF6]/20 border border-white/10 flex items-center justify-center shrink-0">
+                          <Briefcase className="w-5 h-5 text-white/50" />
+                        </div>
+                        <div>
+                          <h2 className="text-3xl font-bold text-white leading-none tracking-tight">
+                            {currentProfile.startupName || "Stealth Startup"}
+                          </h2>
+                          <span className="text-[10px] text-white/40 uppercase tracking-widest font-semibold mt-1 block">
+                            {currentProfile.industry || "Technology"}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-[#94A3B8] text-base leading-relaxed line-clamp-4 mb-6">
+                        {currentProfile.startupDescription || currentProfile.bio}
+                      </p>
+
+                      {currentProfile.lookingFor && currentProfile.lookingFor.length > 0 && (
+                        <div className="mb-6">
+                          <span className="text-[10px] uppercase tracking-wider text-white/30 font-semibold mb-2 block">We Are Hiring</span>
+                          <div className="flex flex-wrap gap-2">
+                            {currentProfile.lookingFor.slice(0, 4).map(role => (
+                              <span key={role} className="px-2.5 py-1 rounded bg-[#3B82F6]/10 text-[#3B82F6] text-[11px] font-medium border border-[#3B82F6]/20">
+                                {role}
+                              </span>
+                            ))}
+                            {currentProfile.lookingFor.length > 4 && (
+                              <span className="px-2.5 py-1 rounded bg-white/5 text-white/40 text-[11px] border border-white/10">+{currentProfile.lookingFor.length - 4}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-4 mt-auto pt-6 border-t border-white/10">
+                      <img src={currentProfile.photoUrl} alt={currentProfile.name} className="w-12 h-12 rounded-full object-cover border border-white/20 shrink-0" />
+                      <div className="overflow-hidden">
+                        <h3 className="text-white font-medium text-sm truncate">{currentProfile.name}</h3>
+                        <p className="text-white/50 text-xs mt-0.5 truncate flex items-center gap-1 text-[11px]">
+                          Founder 
+                          {currentProfile.city && <><span className="w-1 h-1 rounded-full bg-white/20 mx-1"></span> <MapPin className="w-3 h-3" /> {currentProfile.city}</>}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center gap-3 text-xs text-white/40">
-                    {currentProfile.city && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {currentProfile.city}</span>}
-                    {(currentProfile.userType === 'builder' && currentProfile.college) && <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3" /> {currentProfile.college.split(' ')[0]}</span>}
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="absolute inset-0 z-0">
+                      <img src={currentProfile.photoUrl} alt={currentProfile.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0B1120] via-[#0B1120]/80 to-transparent" />
+                    </div>
+                    
+                    <div className="absolute bottom-0 left-0 right-0 p-6 z-10 flex flex-col justify-end">
+                      {matchReasons.length > 0 && (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 w-fit mb-3">
+                          <Check className="w-3 h-3 text-[#14B8A6]" />
+                          <span className="text-[10px] text-white font-medium">{matchReasons[0]}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex flex-col gap-1 mb-3">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-3xl font-bold text-white">{currentProfile.name}</h2>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-[#14B8A6]/20 text-[#14B8A6] uppercase font-bold tracking-widest border border-[#14B8A6]/20">{currentProfile.userType}</span>
+                        </div>
+                        
+                        {currentProfile.bio && (
+                          <p className="text-[#94A3B8] line-clamp-2 text-sm mt-1 leading-relaxed">
+                            {currentProfile.bio}
+                          </p>
+                        )}
+                      </div>
+                      
+                      {currentProfile.skills && currentProfile.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-5">
+                          {currentProfile.skills.slice(0, 3).map(skill => (
+                            <span key={skill} className="text-[11px] bg-white/10 border border-white/10 px-2.5 py-1 rounded text-white/90 font-medium">
+                              {skill}
+                            </span>
+                          ))}
+                          {currentProfile.skills.length > 3 && (
+                            <span className="text-[11px] bg-white/5 border border-white/10 px-2.5 py-1 rounded text-white/50">+{currentProfile.skills.length - 3}</span>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-4 text-xs text-white/40 font-medium tracking-wide">
+                        {currentProfile.city && <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {currentProfile.city}</span>}
+                        {currentProfile.college && <span className="flex items-center gap-1.5"><GraduationCap className="w-3.5 h-3.5" /> {currentProfile.college.split(' ')[0]}</span>}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </motion.div>
@@ -147,27 +214,27 @@ export default function Discovery() {
       </div>
 
       {/* Action Buttons */}
-      {!showDetail && !showIntroModal && (
-        <div className="flex items-center gap-6 mt-8 z-10">
+      {!showIntroModal && (
+        <div className="flex items-center gap-3 mt-6 z-10 w-full justify-center px-4">
           <button 
-            onClick={() => handleSwipe('left')}
-            className="w-14 h-14 rounded-full border border-white/10 bg-white/5 backdrop-blur-lg flex items-center justify-center text-white/40 hover:text-red-500 hover:bg-red-500/20 transition-all group"
+            onClick={() => { setShowDetail(false); handleSwipe('left'); }}
+            className="flex items-center justify-center gap-2 px-6 h-14 rounded-full bg-white/5 backdrop-blur-lg border border-white/10 text-white/50 hover:bg-white/10 hover:text-white transition-all font-medium flex-1 max-w-[140px]"
           >
-            <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
+            <X className="w-5 h-5" /> Pass
           </button>
           
           <button 
-            onClick={() => setShowDetail(true)}
-            className="w-12 h-12 rounded-full hidden md:flex items-center justify-center border border-white/10 bg-white/5 text-white/30 text-white/40 hover:text-white transition-all"
+            onClick={() => setShowIntroModal(true)}
+            className="flex items-center justify-center gap-2 px-6 h-14 rounded-full bg-[#0B1120] border border-[#14B8A6]/30 text-[#14B8A6] hover:bg-[#14B8A6]/10 transition-all font-medium flex-1 max-w-[140px]"
           >
-            <span className="text-xs font-semibold uppercase tracking-wider">i</span>
+            <MessageCircle className="w-5 h-5" /> Message
           </button>
-          
+
           <button 
-            onClick={() => handleSwipe('right')}
-            className="px-8 h-14 rounded-full bg-[#3B82F6] flex items-center justify-center font-bold text-sm tracking-wide shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:scale-105 transition-transform text-white gap-2"
+            onClick={() => { setShowDetail(false); performConnection(); }}
+            className="flex items-center justify-center gap-2 px-6 h-14 rounded-full bg-[#3B82F6] text-white hover:bg-blue-600 transition-transform hover:scale-105 font-bold tracking-wide shadow-[0_0_20px_rgba(59,130,246,0.3)] flex-1 max-w-[140px]"
           >
-            INTERESTED
+            <Heart className="w-5 h-5" /> {hasConnection ? 'Message' : 'Connect'}
           </button>
         </div>
       )}
@@ -220,12 +287,116 @@ export default function Discovery() {
 }
 
 function ProfileDetailView({ profile, matchReasons, onClose }: { profile: UserProfile, matchReasons: string[], onClose: () => void }) {
+  if (profile.userType === 'founder') {
+    return (
+      <div className="w-full h-full overflow-y-auto scrollbar-hide bg-[#0B1120] relative flex flex-col">
+        <div className="sticky top-0 bg-[#0B1120]/80 backdrop-blur-md z-20 border-b border-white/5 p-4 flex items-center gap-4">
+          <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors shrink-0">
+            <X className="w-5 h-5" />
+          </button>
+          <div className="flex-1 truncate">
+            <h2 className="text-white font-bold truncate">{profile.startupName || 'Stealth Startup'}</h2>
+            <p className="text-white/40 text-xs">Startup Profile</p>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="flex items-start gap-4 mb-8">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#3B82F6]/20 to-[#8B5CF6]/20 border border-white/10 flex items-center justify-center shrink-0">
+              <Briefcase className="w-8 h-8 text-[#3B82F6]/50" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white leading-tight mb-2">{profile.startupName || 'Stealth Startup'}</h1>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {profile.industry && <span className="px-2 py-1 rounded bg-white/5 text-white/70">{profile.industry}</span>}
+                {profile.startupStage && <span className="px-2 py-1 rounded bg-[#14B8A6]/10 text-[#14B8A6]">{profile.startupStage}</span>}
+              </div>
+            </div>
+          </div>
+
+          {matchReasons.length > 0 && (
+            <div className="p-4 bg-[#3B82F6]/5 border border-[#3B82F6]/20 rounded-2xl mb-8">
+              <h3 className="text-[10px] font-semibold text-[#3B82F6] uppercase tracking-widest mb-3">Why Recommended</h3>
+              <ul className="space-y-2">
+                {matchReasons.map((reason, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                    <Check className="w-4 h-4 text-[#14B8A6] shrink-0 mt-0.5" />
+                    <span>{reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          <div className="space-y-8">
+            <section>
+              <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3">About the Startup</h3>
+              <p className="text-white/80 leading-relaxed text-sm bg-white/5 p-4 rounded-2xl border border-white/5">
+                {profile.startupDescription || profile.bio}
+              </p>
+            </section>
+
+            {profile.problemSolved && (
+              <section>
+                <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3">Problem Being Solved</h3>
+                <p className="text-white/70 leading-relaxed text-sm">
+                  {profile.problemSolved}
+                </p>
+              </section>
+            )}
+
+            {profile.lookingFor && profile.lookingFor.length > 0 && (
+              <section>
+                <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#3B82F6] animate-pulse"></span>
+                  Team Roles Needed
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {profile.lookingFor.map(role => (
+                     <span key={role} className="px-3 py-1.5 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/20 text-xs text-[#3B82F6] font-medium">{role}</span>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className="pt-8 border-t border-white/10">
+              <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-4">Founder</h3>
+              <div className="flex items-center gap-4 mb-4">
+                <img src={profile.photoUrl} alt={profile.name} className="w-16 h-16 rounded-full object-cover border border-white/20" />
+                <div>
+                  <h4 className="text-white font-medium text-lg">{profile.name}</h4>
+                  <div className="flex items-center gap-3 mt-1">
+                    {profile.city && <span className="flex items-center gap-1 text-xs text-white/50"><MapPin className="w-3 h-3" /> {profile.city}</span>}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 mb-6">
+                {profile.linkedin && <a href={(profile.linkedin.startsWith('http') ? '' : 'https://') + profile.linkedin} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-[#0A66C2]/20 transition-colors"><Linkedin className="w-4 h-4" /></a>}
+                {profile.website && <a href={(profile.website.startsWith('http') ? '' : 'https://') + profile.website} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"><ExternalLink className="w-4 h-4" /></a>}
+              </div>
+
+              {profile.startupDescription && profile.bio && profile.startupDescription !== profile.bio && (
+                 <p className="text-white/70 leading-relaxed text-sm">
+                   {profile.bio}
+                 </p>
+              )}
+            </section>
+            
+            <div className="h-20" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Builder Profile Detail Layout
   return (
     <div className="w-full h-full overflow-y-auto scrollbar-hide bg-[#0B1120] relative flex flex-col">
       <div className="relative h-72 shrink-0">
         <img src={profile.photoUrl} alt={profile.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent" />
-        <button onClick={onClose} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/60 transition-colors">
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B1120] to-transparent" />
+        <button onClick={onClose} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/60 transition-colors z-20">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -233,25 +404,23 @@ function ProfileDetailView({ profile, matchReasons, onClose }: { profile: UserPr
       <div className="p-6 -mt-10 relative z-10">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-3xl font-bold text-white">{profile.name}</h2>
-          <span className="text-[10px] font-semibold text-white/60 uppercase tracking-widest px-3 py-1 rounded bg-white/10">{profile.userType}</span>
+          <span className="text-[10px] font-semibold text-[#14B8A6] bg-[#14B8A6]/10 border border-[#14B8A6]/20 uppercase tracking-widest px-3 py-1 rounded">{profile.userType}</span>
         </div>
         
         <div className="flex items-center gap-4 text-sm text-white/60 mb-6">
-          <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-[#3B82F6]" /> {profile.city}</span>
-          {(profile.userType === 'builder' && profile.college) && <span className="flex items-center gap-1.5"><GraduationCap className="w-4 h-4 text-[#3B82F6]" /> {profile.college}</span>}
+          {profile.city && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-[#3B82F6]" /> {profile.city}</span>}
+          {profile.college && <span className="flex items-center gap-1.5"><GraduationCap className="w-4 h-4 text-[#3B82F6]" /> {profile.college}</span>}
         </div>
 
-        {/* Social Links */}
         <div className="flex gap-3 mb-8">
           {profile.linkedin && <a href={(profile.linkedin.startsWith('http') ? '' : 'https://') + profile.linkedin} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-[#0A66C2]/20 transition-colors"><Linkedin className="w-5 h-5" /></a>}
           {profile.github && <a href={(profile.github.startsWith('http') ? '' : 'https://') + profile.github} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"><Github className="w-5 h-5" /></a>}
           {profile.portfolio && <a href={(profile.portfolio.startsWith('http') ? '' : 'https://') + profile.portfolio} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"><ExternalLink className="w-5 h-5" /></a>}
-          {profile.website && <a href={(profile.website.startsWith('http') ? '' : 'https://') + profile.website} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"><ExternalLink className="w-5 h-5" /></a>}
         </div>
 
         {matchReasons.length > 0 && (
-          <div className="p-4 bg-[#3B82F6]/5 border border-[#3B82F6]/20 rounded-2xl mb-6">
-            <h3 className="text-[10px] font-semibold text-[#3B82F6] uppercase tracking-widest mb-3">Why Recommended</h3>
+          <div className="p-4 bg-[#14B8A6]/5 border border-[#14B8A6]/20 rounded-2xl mb-6">
+            <h3 className="text-[10px] font-semibold text-[#14B8A6] uppercase tracking-widest mb-3">Why Recommended</h3>
             <ul className="space-y-2">
               {matchReasons.map((reason, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-white/80">
@@ -263,58 +432,51 @@ function ProfileDetailView({ profile, matchReasons, onClose }: { profile: UserPr
           </div>
         )}
         
-        <div className="space-y-6">
+        <div className="space-y-8">
           <section>
             <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3">About</h3>
             <p className="text-white/80 leading-relaxed text-sm">{profile.bio}</p>
           </section>
 
-          {profile.userType === 'founder' && profile.startupName && (
-            <section className="bg-white/5 border border-white/10 rounded-2xl p-4">
-              <h3 className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-1">Company</h3>
-              <h4 className="text-lg text-white font-medium mb-1">{profile.startupName}</h4>
-              <p className="text-white/90 font-medium mb-2 text-sm leading-relaxed">{profile.startupDescription}</p>
-              <h3 className="text-[10px] uppercase tracking-widest text-white/40 font-bold mt-4 mb-1">Problem Being Solved</h3>
-              <p className="text-white/60 text-xs leading-relaxed mb-4">{profile.problemSolved}</p>
-              
-              <div className="flex gap-2">
-                <span className="px-2 py-1 bg-white/10 rounded text-[10px] text-white/70">{profile.industry}</span>
-                <span className="px-2 py-1 bg-white/10 rounded text-[10px] text-white/70">{profile.startupStage}</span>
-              </div>
-            </section>
-          )}
-
-          {profile.userType === 'builder' && profile.currentProjects && (
+          {profile.currentProjects && (
             <section>
               <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3">Current Projects</h3>
               <p className="text-white/80 leading-relaxed text-sm p-4 bg-white/5 rounded-xl border border-white/5">{profile.currentProjects}</p>
             </section>
           )}
 
-          <section>
-            <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3">Skills</h3>
-            <div className="flex flex-wrap gap-2">
-              {profile.skills.map(skill => (
-                <span key={skill} className="px-3 py-1.5 rounded-md bg-white/5 border border-white/10 text-xs text-white/80">{skill}</span>
-              ))}
-            </div>
-          </section>
+          {profile.skills && profile.skills.length > 0 && (
+            <section>
+              <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3">Skills</h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.skills.map(skill => (
+                  <span key={skill} className="px-3 py-1.5 rounded-md bg-white/5 border border-white/10 text-xs text-white/80 font-medium">{skill}</span>
+                ))}
+              </div>
+            </section>
+          )}
 
-          <section>
-            <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3">Interests</h3>
-            <div className="flex flex-wrap gap-2">
-              {profile.interests.map(interest => (
-                <span key={interest} className="px-3 py-1.5 rounded-md bg-[#14B8A6]/10 border border-[#14B8A6]/20 text-xs text-[#14B8A6]">{interest}</span>
-              ))}
-            </div>
-          </section>
+          {profile.interests && profile.interests.length > 0 && (
+            <section>
+              <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3">Interests</h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.interests.map(interest => (
+                  <span key={interest} className="px-3 py-1.5 rounded-md bg-[#14B8A6]/10 border border-[#14B8A6]/20 text-xs text-[#14B8A6] font-medium">{interest}</span>
+                ))}
+              </div>
+            </section>
+          )}
 
-          <section className="pb-10">
-            <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3">Commitment</h3>
-            <div className="inline-flex px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white/80">
-              {profile.commitment}
-            </div>
-          </section>
+          {profile.commitment && (
+            <section className="pb-10">
+              <h3 className="text-xs uppercase tracking-wider text-white/40 font-semibold mb-3">Commitment</h3>
+              <div className="inline-flex px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white/80 font-medium">
+                {profile.commitment}
+              </div>
+            </section>
+          )}
+          
+          <div className="h-20" />
         </div>
       </div>
     </div>
