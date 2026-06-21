@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 
 interface AppContextType {
+  session: any | null;
   currentUser: UserProfile | null;
   setCurrentUser: (user: UserProfile | null) => void;
   profiles: UserProfile[];
@@ -24,6 +25,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [session, setSession] = useState<any | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [connections, setConnections] = useState<ConnectionRequest[]>([]);
@@ -35,16 +37,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
+        setSession(session);
         loadData(session.user.id);
       } else {
+        setSession(null);
         setIsLoading(false);
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
+        setSession(session);
         loadData(session.user.id);
       } else {
+        setSession(null);
         setCurrentUser(null);
         setProfiles([]);
         setConnections([]);
@@ -88,6 +94,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       const profile = await api.getProfile(userId);
       if (profile) setCurrentUser(profile);
+      else setCurrentUser(null);
 
       const allProfiles = await api.getAllProfiles();
       setProfiles(allProfiles);
@@ -171,6 +178,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
+      session,
       currentUser,
       setCurrentUser,
       profiles,

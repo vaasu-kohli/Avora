@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
-import { Rocket, Mail, Lock } from 'lucide-react';
+import { Rocket, Mail, Lock, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function AuthPage() {
@@ -10,6 +11,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [verificationSent, setVerificationSent] = useState(false);
   const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -19,9 +21,19 @@ export default function AuthPage() {
     
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate('/discover');
+        
+        if (user) {
+          const profile = await api.getProfile(user.id);
+          if (profile) {
+            navigate('/discover');
+          } else {
+            navigate('/onboarding');
+          }
+        } else {
+          navigate('/discover');
+        }
       } else {
         const { error } = await supabase.auth.signUp({ 
           email, 
@@ -31,10 +43,28 @@ export default function AuthPage() {
           }
         });
         if (error) throw error;
-        navigate('/onboarding');
+        setVerificationSent(true);
       }
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    try {
+      setLoading(true);
+      await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/discover`
+        }
+      });
+      alert('Verification email resent!');
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend email');
     } finally {
       setLoading(false);
     }
@@ -63,15 +93,52 @@ export default function AuthPage() {
       >
         <div className="flex justify-center mb-6">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#14B8A6] flex items-center justify-center">
-            <Rocket className="w-6 h-6 text-white" />
+            {verificationSent ? <Mail className="w-6 h-6 text-white" /> : <Rocket className="w-6 h-6 text-white" />}
           </div>
         </div>
-        
-        <h2 className="text-2xl font-bold text-white text-center mb-2">
-          {isLogin ? 'Welcome back' : 'Create an account'}
-        </h2>
+
+        {verificationSent ? (
+          <div className="text-center space-y-6">
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Check your email
+            </h2>
+            <p className="text-white/60 mb-8">
+              We have sent a verification link to your email address. Please verify your Avora account before signing in.
+            </p>
+
+            <div className="space-y-3">
+              <button 
+                onClick={() => window.open('https://mail.google.com/', '_blank')}
+                className="w-full bg-[#3B82F6] text-white font-medium py-3 rounded-xl hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+              >
+                Open Gmail <ExternalLink className="w-4 h-4" />
+              </button>
+              
+              <button 
+                onClick={handleResend}
+                disabled={loading}
+                className="w-full bg-white/5 border border-white/10 text-white font-medium py-3 rounded-xl hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Sending...' : 'Resend Email'}
+              </button>
+            </div>
+            
+            <p className="mt-8 text-center text-sm text-white/50">
+              <button 
+                onClick={() => setVerificationSent(false)}
+                className="text-[#3B82F6] hover:text-white transition-colors"
+              >
+                Back to sign in
+              </button>
+            </p>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-2xl font-bold text-white text-center mb-2">
+              {isLogin ? 'Welcome back to Avora' : 'Create an Avora account'}
+            </h2>
         <p className="text-white/50 text-center mb-8">
-          {isLogin ? 'Sign in to find your co-founders' : 'Join thousands of builders and founders'}
+          {isLogin ? 'Sign in to find your teammates' : 'Join thousands of builders and founders on Avora'}
         </p>
 
         {error && (
@@ -145,6 +212,8 @@ export default function AuthPage() {
             {isLogin ? 'Sign up' : 'Sign in'}
           </button>
         </p>
+        </>
+        )}
       </motion.div>
     </div>
   );

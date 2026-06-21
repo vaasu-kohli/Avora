@@ -23,8 +23,8 @@ export default function Layout() {
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex w-64 flex-col border-r border-white/5 bg-white/5 backdrop-blur-sm fixed h-full z-10">
         <div className="p-6">
-          <h1 className="text-2xl font-bold tracking-tight text-white mb-1"><span className="text-primary">PRA</span>HARI</h1>
-          <p className="text-xs text-muted-foreground">Find your co-founder</p>
+          <h1 className="text-2xl font-bold tracking-tight text-white mb-1"><span className="text-primary">AVO</span>RA</h1>
+          <p className="text-xs text-muted-foreground">Find your teammates</p>
         </div>
         
         <nav className="flex-1 px-4 space-y-2 mt-4">
@@ -66,7 +66,7 @@ export default function Layout() {
       <main className="flex-1 md:ml-64 w-full h-screen overflow-y-auto pb-20 md:pb-0 relative">
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between p-4 border-b border-white/5 bg-background/80 backdrop-blur-md sticky top-0 z-20">
-          <h1 className="text-xl font-bold tracking-tight text-white"><span className="text-primary">PRA</span>HARI</h1>
+          <h1 className="text-xl font-bold tracking-tight text-white"><span className="text-primary">AVO</span>RA</h1>
           <button className="text-muted-foreground hover:text-white">
             <Bell className="w-5 h-5" />
           </button>
