@@ -42,7 +42,6 @@ export const api = {
           finalProfile.startupStage = f.startup_stage;
           finalProfile.lookingFor = f.looking_for || [];
           finalProfile.website = f.website || '';
-          finalProfile.commitment = f.commitment || '';
         }
       } else if (userType === 'builder') {
         const { data: b, error: bErr } = await supabase.from('builders').select('*').eq('user_id', userId).single();
@@ -91,7 +90,10 @@ export const api = {
   async createProfile(profile: UserProfile): Promise<boolean> {
     try {
       console.log('[API] Saving profile to DB:', profile);
-      const { error: userErr } = await supabase.from('users').upsert({ id: profile.id, role: profile.userType });
+      const { error: userErr } = await supabase.from('users').upsert(
+        { id: profile.id, role: profile.userType }, 
+        { onConflict: 'id' }
+      );
       if (userErr) throw new Error(`User update error: ${userErr.message}`);
       
       const profilePayload = {
@@ -115,8 +117,7 @@ export const api = {
           startup_stage: profile.startupStage || '',
           industry: profile.industry || '',
           looking_for: profile.lookingFor || [],
-          website: profile.website || '',
-          commitment: profile.commitment || ''
+          website: profile.website || ''
         };
         console.log('[API] Saving to founders table:', founderPayload);
         const { error: fErr } = await supabase.from('founders').upsert(founderPayload, { onConflict: 'user_id' });

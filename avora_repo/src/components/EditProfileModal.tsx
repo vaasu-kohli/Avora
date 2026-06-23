@@ -176,11 +176,6 @@ export default function EditProfileModal({ currentUser, onClose, onSave }: EditP
               </div>
 
               <div>
-                <label className="text-xs text-white/50 mb-1 block">Commitment / Availability</label>
-                <input type="text" value={formData.commitment || ''} onChange={e => updateForm({ commitment: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" placeholder="e.g. Full-time, Part-time, 10 hrs/week" />
-              </div>
-
-              <div>
                  <label className="text-xs text-white/50 mb-1 block">Industry</label>
                  <input type="text" value={formData.industry || ''} onChange={e => updateForm({ industry: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
               </div>
