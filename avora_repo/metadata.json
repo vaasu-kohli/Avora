@@ -1,0 +1,8 @@
+{
+  "name": "Avora",
+  "description": "Startup teammate discovery platform for founders and builders.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
