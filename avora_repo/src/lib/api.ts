@@ -103,7 +103,7 @@ export const api = {
         linkedin_url: profile.linkedin || ''
       };
       console.log('[API] Saving to profiles table:', profilePayload);
-      const { error: profileErr } = await supabase.from('profiles').upsert(profilePayload);
+      const { error: profileErr } = await supabase.from('profiles').upsert(profilePayload, { onConflict: 'user_id' });
       if (profileErr) throw new Error(`Profiles update error: ${profileErr.message}`);
 
       if (profile.userType === 'founder') {
@@ -119,7 +119,7 @@ export const api = {
           commitment: profile.commitment || ''
         };
         console.log('[API] Saving to founders table:', founderPayload);
-        const { error: fErr } = await supabase.from('founders').upsert(founderPayload);
+        const { error: fErr } = await supabase.from('founders').upsert(founderPayload, { onConflict: 'user_id' });
         if (fErr) throw new Error(`Founders update error: ${fErr.message}`);
       } else {
         const builderPayload = {
@@ -135,7 +135,7 @@ export const api = {
           commitment: profile.commitment || ''
         };
         console.log('[API] Saving to builders table:', builderPayload);
-        const { error: bErr } = await supabase.from('builders').upsert(builderPayload);
+        const { error: bErr } = await supabase.from('builders').upsert(builderPayload, { onConflict: 'user_id' });
         if (bErr) throw new Error(`Builders update error: ${bErr.message}`);
       }
       console.log('[API] Profile saved successfully');
