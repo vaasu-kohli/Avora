@@ -19,14 +19,14 @@ export const api = {
         userType,
         name: profileRow.name,
         photoUrl: profileRow.photo_url || '',
-        college: profileRow.college || '',
+        college: '',
         city: profileRow.city || '',
         linkedin: profileRow.linkedin_url || '',
         github: '',
         portfolio: '',
         bio: profileRow.bio || '',
         skills: [],
-        interests: profileRow.interests || [],
+        interests: [],
         commitment: '',
       };
 
@@ -37,24 +37,26 @@ export const api = {
           finalProfile.designation = f.designation;
           finalProfile.startupName = f.startup_name;
           finalProfile.startupDescription = f.startup_description || '';
-          finalProfile.problemSolved = f.problem_statement || '';
+          finalProfile.problemSolved = f.startup_description || ''; // Mapping back for UI state
           finalProfile.industry = f.industry || '';
           finalProfile.startupStage = f.startup_stage;
           finalProfile.lookingFor = f.looking_for || [];
           finalProfile.website = f.website || '';
-          finalProfile.commitment = f.availability || '';
+          finalProfile.commitment = f.commitment || '';
         }
       } else if (userType === 'builder') {
         const { data: b, error: bErr } = await supabase.from('builders').select('*').eq('user_id', userId).single();
         if (bErr && bErr.code !== 'PGRST116') throw bErr;
         if (b) {
+          finalProfile.college = b.college || '';
+          finalProfile.interests = b.interests || [];
           finalProfile.skills = b.skills || [];
           finalProfile.github = b.github_url || '';
           finalProfile.leetcode = b.leetcode_url || '';
           finalProfile.portfolio = b.portfolio_url || '';
           finalProfile.resumeUrl = b.resume_url || '';
           finalProfile.currentProjects = b.current_projects || '';
-          finalProfile.commitment = b.availability || '';
+          finalProfile.commitment = b.commitment || '';
         }
       }
 
@@ -97,10 +99,8 @@ export const api = {
         name: profile.name,
         photo_url: profile.photoUrl,
         bio: profile.bio,
-        college: profile.college || '',
         city: profile.city || '',
-        linkedin_url: profile.linkedin || '',
-        interests: profile.interests || []
+        linkedin_url: profile.linkedin || ''
       };
       console.log('[API] Saving to profiles table:', profilePayload);
       const { error: profileErr } = await supabase.from('profiles').upsert(profilePayload);
@@ -111,13 +111,12 @@ export const api = {
           user_id: profile.id,
           designation: profile.designation || '',
           startup_name: profile.startupName || '',
-          startup_description: profile.startupDescription || '',
+          startup_description: profile.problemSolved || profile.startupDescription || '',
           startup_stage: profile.startupStage || '',
-          problem_statement: profile.problemSolved || '',
           industry: profile.industry || '',
           looking_for: profile.lookingFor || [],
           website: profile.website || '',
-          availability: profile.commitment || ''
+          commitment: profile.commitment || ''
         };
         console.log('[API] Saving to founders table:', founderPayload);
         const { error: fErr } = await supabase.from('founders').upsert(founderPayload);
@@ -125,13 +124,15 @@ export const api = {
       } else {
         const builderPayload = {
           user_id: profile.id,
+          college: profile.college || '',
+          interests: profile.interests || [],
           skills: profile.skills || [],
           github_url: profile.github || '',
           leetcode_url: profile.leetcode || '',
           portfolio_url: profile.portfolio || '',
           resume_url: profile.resumeUrl || '',
           current_projects: profile.currentProjects || '',
-          availability: profile.commitment || ''
+          commitment: profile.commitment || ''
         };
         console.log('[API] Saving to builders table:', builderPayload);
         const { error: bErr } = await supabase.from('builders').upsert(builderPayload);

@@ -35,30 +35,24 @@ export interface Database {
           name: string
           photo_url: string | null
           bio: string | null
-          college: string | null
           city: string | null
           linkedin_url: string | null
-          interests: string[] | null
         }
         Insert: {
           user_id: string
           name: string
           photo_url?: string | null
           bio?: string | null
-          college?: string | null
           city?: string | null
           linkedin_url?: string | null
-          interests?: string[] | null
         }
         Update: {
           user_id?: string
           name?: string
           photo_url?: string | null
           bio?: string | null
-          college?: string | null
           city?: string | null
           linkedin_url?: string | null
-          interests?: string[] | null
         }
       }
       founders: {
@@ -67,68 +61,71 @@ export interface Database {
           designation: string
           startup_name: string
           startup_stage: string
-          problem_statement: string
+          startup_description: string | null
           industry: string | null
           looking_for: string[] | null
-          startup_description: string | null
           website: string | null
-          availability: string | null
+          commitment: string | null
         }
         Insert: {
           user_id: string
           designation: string
           startup_name: string
           startup_stage: string
-          problem_statement: string
+          startup_description?: string | null
           industry?: string | null
           looking_for?: string[] | null
-          startup_description?: string | null
           website?: string | null
-          availability?: string | null
+          commitment?: string | null
         }
         Update: {
           user_id?: string
           designation?: string
           startup_name?: string
           startup_stage?: string
-          problem_statement?: string
+          startup_description?: string | null
           industry?: string | null
           looking_for?: string[] | null
-          startup_description?: string | null
           website?: string | null
-          availability?: string | null
+          commitment?: string | null
         }
       }
       builders: {
         Row: {
           user_id: string
+          college: string | null
+          interests: string[] | null
           skills: string[] | null
           github_url: string | null
           leetcode_url: string | null
           portfolio_url: string | null
           resume_url: string | null
           current_projects: string | null
-          availability: string | null
+          commitment: string | null
         }
         Insert: {
           user_id: string
+          college?: string | null
+          interests?: string[] | null
           skills?: string[] | null
           github_url?: string | null
           leetcode_url?: string | null
           portfolio_url?: string | null
           resume_url?: string | null
           current_projects?: string | null
-          availability?: string | null
+          commitment?: string | null
         }
         Update: {
           user_id?: string
+          college?: string | null
+          interests?: string[] | null
           skills?: string[] | null
           github_url?: string | null
           leetcode_url?: string | null
           portfolio_url?: string | null
           resume_url?: string | null
           current_projects?: string | null
-          availability?: string | null
+          commitment?: string | null
         }
       }
       connections: {

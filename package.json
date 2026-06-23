@@ -7,5 +7,10 @@
     "build": "cd avora_repo && npm run build && cp -r dist ../dist",
     "preview": "cd avora_repo && npm run preview",
     "lint": "cd avora_repo && npm run lint"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "dotenv": "^17.4.2",
+    "tsx": "^4.22.4"
   }
 }
