@@ -45,7 +45,16 @@ export default function Onboarding() {
         
         if (parsed.userId === authId) {
           if (parsed.formData || parsed.step > 1) {
-            if (parsed.formData) setFormData(prev => ({ ...prev, ...parsed.formData }));
+            if (parsed.formData) {
+              setFormData(prev => ({ ...prev, ...parsed.formData }));
+              if (parsed.formData.userType === 'founder' && parsed.formData.lookingFor) {
+                const otherRoles = parsed.formData.lookingFor.filter((r: string) => !['AI Engineer', 'Backend', 'Frontend', 'Design', 'Marketing', 'Sales'].includes(r));
+                if (otherRoles.length > 0) {
+                  setIsOtherRoleSelected(true);
+                  setCustomRolesText(otherRoles.join(', '));
+                }
+              }
+            }
             if (parsed.step) setStep(parsed.step);
             setShowRestoredNotice(true);
             setTimeout(() => setShowRestoredNotice(false), 4000);
@@ -127,6 +136,10 @@ export default function Onboarding() {
     setStep(s => s - 1);
   };
 
+  const predefinedRoles = ['AI Engineer', 'Backend', 'Frontend', 'Design', 'Marketing', 'Sales'];
+  const [isOtherRoleSelected, setIsOtherRoleSelected] = useState(false);
+  const [customRolesText, setCustomRolesText] = useState('');
+
   const handleComplete = async () => {
     if (!authId) return;
     
@@ -136,9 +149,19 @@ export default function Onboarding() {
       userPhoto = `https://ui-avatars.com/api/?name=${formData.name || 'U'}&background=random`;
     }
 
+    const standardRoles = (formData.lookingFor || []).filter(r => predefinedRoles.includes(r));
+    let additionalRoles: string[] = [];
+    if (isOtherRoleSelected && customRolesText.trim().length > 0) {
+       additionalRoles = customRolesText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    }
+    const finalLookingFor = formData.userType === 'founder' 
+      ? Array.from(new Set([...standardRoles, ...additionalRoles]))
+      : formData.lookingFor;
+
     const newUser: UserProfile = {
       id: authId,
       ...formData as UserProfile,
+      lookingFor: finalLookingFor,
       photoUrl: userPhoto,
     };
     
@@ -337,7 +360,26 @@ export default function Onboarding() {
                     const selected = formData.lookingFor?.includes(role);
                     return <button key={role} onClick={() => updateForm({ lookingFor: selected ? formData.lookingFor?.filter(s => s !== role) : [...(formData.lookingFor || []), role] })} className={cn("px-4 py-2 rounded-full border text-xs transition-all", selected ? "bg-[#3B82F6] text-white border-[#3B82F6]" : "bg-white/5 text-white/70 border-white/10 hover:border-white/30")}>{role}</button>;
                   })}
+                  <button 
+                    key="Other" 
+                    onClick={() => setIsOtherRoleSelected(!isOtherRoleSelected)} 
+                    className={cn("px-4 py-2 rounded-full border text-xs transition-all", isOtherRoleSelected ? "bg-[#3B82F6] text-white border-[#3B82F6]" : "bg-white/5 text-white/70 border-white/10 hover:border-white/30")}
+                  >
+                    Other
+                  </button>
                 </div>
+                {isOtherRoleSelected && (
+                  <div className="mt-3">
+                    <input 
+                      type="text" 
+                      placeholder="Specify the role you are looking for" 
+                      value={customRolesText} 
+                      onChange={e => setCustomRolesText(e.target.value)} 
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6] text-sm"
+                    />
+                    <p className="text-[10px] text-white/40 mt-1 pl-1">Examples: Legal Advisor, Hardware Engineer, Product Manager (comma separated)</p>
+                  </div>
+                )}
               </div>
                
               <div className="flex gap-3 pt-4">

@@ -19,6 +19,15 @@ export default function EditProfileModal({ currentUser, onClose, onSave }: EditP
   const [formData, setFormData] = useState<Partial<UserProfile>>({
     ...currentUser
   });
+  
+  const [isOtherRoleSelected, setIsOtherRoleSelected] = useState(() => {
+    return (currentUser.lookingFor || []).some(r => !ROLES.includes(r));
+  });
+  
+  const [customRolesText, setCustomRolesText] = useState(() => {
+    return (currentUser.lookingFor || []).filter(r => !ROLES.includes(r)).join(', ');
+  });
+
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,7 +67,17 @@ export default function EditProfileModal({ currentUser, onClose, onSave }: EditP
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const updatedProfile = { ...currentUser, ...formData } as UserProfile;
+      const finalFormData = { ...formData };
+      if (finalFormData.userType === 'founder') {
+        const standardRoles = (finalFormData.lookingFor || []).filter(r => ROLES.includes(r));
+        let additionalRoles: string[] = [];
+        if (isOtherRoleSelected && customRolesText.trim().length > 0) {
+           additionalRoles = customRolesText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        }
+        finalFormData.lookingFor = Array.from(new Set([...standardRoles, ...additionalRoles]));
+      }
+
+      const updatedProfile = { ...currentUser, ...finalFormData } as UserProfile;
       await api.createProfile(updatedProfile); // Maps perfectly to upserts
       onSave(updatedProfile);
     } catch (err: any) {
@@ -187,7 +206,27 @@ export default function EditProfileModal({ currentUser, onClose, onSave }: EditP
                     const selected = formData.lookingFor?.includes(role);
                     return <button key={role} type="button" onClick={() => updateForm({ lookingFor: selected ? formData.lookingFor?.filter(s => s !== role) : [...(formData.lookingFor || []), role] })} className={cn("px-3 py-1.5 rounded-full border text-xs transition-all", selected ? "bg-[#3B82F6] text-white border-[#3B82F6]" : "bg-white/5 text-white/70 border-white/10 hover:border-white/30")}>{role}</button>;
                   })}
+                  <button 
+                    key="Other" 
+                    type="button"
+                    onClick={() => setIsOtherRoleSelected(!isOtherRoleSelected)} 
+                    className={cn("px-3 py-1.5 rounded-full border text-xs transition-all", isOtherRoleSelected ? "bg-[#3B82F6] text-white border-[#3B82F6]" : "bg-white/5 text-white/70 border-white/10 hover:border-white/30")}
+                  >
+                    Other
+                  </button>
                 </div>
+                {isOtherRoleSelected && (
+                  <div className="mt-3">
+                    <input 
+                      type="text" 
+                      placeholder="Specify the role you are looking for" 
+                      value={customRolesText} 
+                      onChange={e => setCustomRolesText(e.target.value)} 
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6] text-sm"
+                    />
+                    <p className="text-[10px] text-white/40 mt-1 pl-1">Examples: Legal Advisor, Hardware Engineer, Product Manager (comma separated)</p>
+                  </div>
+                )}
               </div>
             </section>
           )}
