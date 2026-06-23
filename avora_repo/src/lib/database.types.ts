@@ -36,8 +36,9 @@ export interface Database {
           photo_url: string | null
           bio: string | null
           college: string | null
-          location: string | null
+          city: string | null
           linkedin_url: string | null
+          interests: string[] | null
         }
         Insert: {
           user_id: string
@@ -45,8 +46,9 @@ export interface Database {
           photo_url?: string | null
           bio?: string | null
           college?: string | null
-          location?: string | null
+          city?: string | null
           linkedin_url?: string | null
+          interests?: string[] | null
         }
         Update: {
           user_id?: string
@@ -54,8 +56,9 @@ export interface Database {
           photo_url?: string | null
           bio?: string | null
           college?: string | null
-          location?: string | null
+          city?: string | null
           linkedin_url?: string | null
+          interests?: string[] | null
         }
       }
       founders: {
@@ -68,6 +71,8 @@ export interface Database {
           industry: string | null
           looking_for: string[] | null
           startup_description: string | null
+          website: string | null
+          availability: string | null
         }
         Insert: {
           user_id: string
@@ -78,6 +83,8 @@ export interface Database {
           industry?: string | null
           looking_for?: string[] | null
           startup_description?: string | null
+          website?: string | null
+          availability?: string | null
         }
         Update: {
           user_id?: string
@@ -88,6 +95,8 @@ export interface Database {
           industry?: string | null
           looking_for?: string[] | null
           startup_description?: string | null
+          website?: string | null
+          availability?: string | null
         }
       }
       builders: {

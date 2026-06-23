@@ -19,13 +19,14 @@ export const api = {
         userType,
         name: profileRow.name,
         photoUrl: profileRow.photo_url || '',
-        city: '', // Removed due to missing location column
-        linkedin: '', // Removed due to missing linkedin_url column
+        college: profileRow.college || '',
+        city: profileRow.city || '',
+        linkedin: profileRow.linkedin_url || '',
         github: '',
         portfolio: '',
         bio: profileRow.bio || '',
         skills: [],
-        interests: [],
+        interests: profileRow.interests || [],
         commitment: '',
       };
 
@@ -36,9 +37,12 @@ export const api = {
           finalProfile.designation = f.designation;
           finalProfile.startupName = f.startup_name;
           finalProfile.startupDescription = f.startup_description || '';
+          finalProfile.problemSolved = f.problem_statement || '';
           finalProfile.industry = f.industry || '';
           finalProfile.startupStage = f.startup_stage;
           finalProfile.lookingFor = f.looking_for || [];
+          finalProfile.website = f.website || '';
+          finalProfile.commitment = f.availability || '';
         }
       } else if (userType === 'builder') {
         const { data: b, error: bErr } = await supabase.from('builders').select('*').eq('user_id', userId).single();
@@ -93,6 +97,10 @@ export const api = {
         name: profile.name,
         photo_url: profile.photoUrl,
         bio: profile.bio,
+        college: profile.college || '',
+        city: profile.city || '',
+        linkedin_url: profile.linkedin || '',
+        interests: profile.interests || []
       };
       console.log('[API] Saving to profiles table:', profilePayload);
       const { error: profileErr } = await supabase.from('profiles').upsert(profilePayload);
@@ -105,8 +113,11 @@ export const api = {
           startup_name: profile.startupName || '',
           startup_description: profile.startupDescription || '',
           startup_stage: profile.startupStage || '',
+          problem_statement: profile.problemSolved || '',
           industry: profile.industry || '',
-          looking_for: profile.lookingFor || []
+          looking_for: profile.lookingFor || [],
+          website: profile.website || '',
+          availability: profile.commitment || ''
         };
         console.log('[API] Saving to founders table:', founderPayload);
         const { error: fErr } = await supabase.from('founders').upsert(founderPayload);

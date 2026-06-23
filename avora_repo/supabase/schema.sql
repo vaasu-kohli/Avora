@@ -42,8 +42,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   photo_url TEXT,
   bio TEXT,
   college TEXT,
-  location TEXT,
-  linkedin_url TEXT
+  city TEXT,
+  linkedin_url TEXT,
+  interests TEXT[]
 );
 
 -- Secure role-level permissions
@@ -78,7 +79,9 @@ CREATE TABLE IF NOT EXISTS founders (
   startup_stage TEXT NOT NULL,
   problem_statement TEXT NOT NULL,
   industry TEXT,
-  looking_for TEXT[]
+  looking_for TEXT[],
+  website TEXT,
+  availability TEXT
 );
 
 -- Secure role-level permissions

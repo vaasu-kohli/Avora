@@ -117,6 +117,21 @@ export default function EditProfileModal({ currentUser, onClose, onSave }: EditP
               <label className="text-xs text-white/50 mb-1 block">Bio / Tagline *</label>
               <input type="text" maxLength={100} value={formData.bio || ''} onChange={e => updateForm({ bio: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
             </div>
+
+            <div>
+              <label className="text-xs text-white/50 mb-1 block">College / University</label>
+              <input type="text" value={formData.college || ''} onChange={e => updateForm({ college: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
+            </div>
+
+            <div>
+              <label className="text-xs text-white/50 mb-1 block">City (e.g., San Francisco, CA)</label>
+              <input type="text" value={formData.city || ''} onChange={e => updateForm({ city: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
+            </div>
+
+            <div>
+              <label className="text-xs text-white/50 mb-1 block">LinkedIn Profile URL</label>
+              <input type="url" value={formData.linkedin || ''} onChange={e => updateForm({ linkedin: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
+            </div>
           </section>
 
           {/* Founder Specific */}
@@ -148,6 +163,21 @@ export default function EditProfileModal({ currentUser, onClose, onSave }: EditP
               <div>
                 <label className="text-xs text-white/50 mb-1 block">Startup Description</label>
                 <textarea value={formData.startupDescription || ''} onChange={e => updateForm({ startupDescription: e.target.value })} rows={3} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6] resize-none" />
+              </div>
+
+              <div>
+                <label className="text-xs text-white/50 mb-1 block">Problem Statement *</label>
+                <textarea value={formData.problemSolved || ''} onChange={e => updateForm({ problemSolved: e.target.value })} rows={2} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6] resize-none" placeholder="What problem are you solving?" />
+              </div>
+
+              <div>
+                 <label className="text-xs text-white/50 mb-1 block">Website</label>
+                 <input type="url" value={formData.website || ''} onChange={e => updateForm({ website: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
+              </div>
+
+              <div>
+                <label className="text-xs text-white/50 mb-1 block">Commitment / Availability</label>
+                <input type="text" value={formData.commitment || ''} onChange={e => updateForm({ commitment: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" placeholder="e.g. Full-time, Part-time, 10 hrs/week" />
               </div>
 
               <div>
@@ -199,6 +229,11 @@ export default function EditProfileModal({ currentUser, onClose, onSave }: EditP
               <div>
                 <label className="text-xs text-white/50 mb-1 block">Resume URL</label>
                 <input type="url" value={formData.resumeUrl || ''} onChange={e => updateForm({ resumeUrl: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
+              </div>
+
+              <div>
+                <label className="text-xs text-white/50 mb-1 block">Commitment / Availability</label>
+                <input type="text" value={formData.commitment || ''} onChange={e => updateForm({ commitment: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" placeholder="e.g. Full-time, Part-time, 10 hrs/week" />
               </div>
             </section>
           )}
