@@ -2,6 +2,7 @@
   "name": "workspace-root",
   "private": true,
   "scripts": {
+    "postinstall": "cd avora_repo && npm install",
     "dev": "cd avora_repo && npm run dev",
     "build": "cd avora_repo && npm run build",
     "preview": "cd avora_repo && npm run preview",
