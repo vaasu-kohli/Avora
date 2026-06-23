@@ -19,7 +19,7 @@ export const api = {
         userType,
         name: profileRow.name,
         photoUrl: profileRow.photo_url || '',
-        college: '',
+        college: profileRow.college || '',
         city: profileRow.city || '',
         linkedin: profileRow.linkedin_url || '',
         github: '',
@@ -47,7 +47,6 @@ export const api = {
         const { data: b, error: bErr } = await supabase.from('builders').select('*').eq('user_id', userId).single();
         if (bErr && bErr.code !== 'PGRST116') throw bErr;
         if (b) {
-          finalProfile.college = b.college || '';
           finalProfile.interests = b.interests || [];
           finalProfile.skills = b.skills || [];
           finalProfile.github = b.github_url || '';
@@ -102,7 +101,8 @@ export const api = {
         photo_url: profile.photoUrl,
         bio: profile.bio,
         city: profile.city || '',
-        linkedin_url: profile.linkedin || ''
+        linkedin_url: profile.linkedin || '',
+        college: profile.college || ''
       };
       console.log('[API] Saving to profiles table:', profilePayload);
       const { error: profileErr } = await supabase.from('profiles').upsert(profilePayload, { onConflict: 'user_id' });
@@ -125,7 +125,6 @@ export const api = {
       } else {
         const builderPayload = {
           user_id: profile.id,
-          college: profile.college || '',
           interests: profile.interests || [],
           skills: profile.skills || [],
           github_url: profile.github || '',

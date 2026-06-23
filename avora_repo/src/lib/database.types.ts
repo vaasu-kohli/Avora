@@ -37,6 +37,7 @@ export interface Database {
           bio: string | null
           city: string | null
           linkedin_url: string | null
+          college: string | null
         }
         Insert: {
           user_id: string
@@ -45,6 +46,7 @@ export interface Database {
           bio?: string | null
           city?: string | null
           linkedin_url?: string | null
+          college?: string | null
         }
         Update: {
           user_id?: string
@@ -53,6 +55,7 @@ export interface Database {
           bio?: string | null
           city?: string | null
           linkedin_url?: string | null
+          college?: string | null
         }
       }
       founders: {
@@ -93,7 +96,6 @@ export interface Database {
       builders: {
         Row: {
           user_id: string
-          college: string | null
           interests: string[] | null
           skills: string[] | null
           github_url: string | null
@@ -105,7 +107,6 @@ export interface Database {
         }
         Insert: {
           user_id: string
-          college?: string | null
           interests?: string[] | null
           skills?: string[] | null
           github_url?: string | null
@@ -117,7 +118,6 @@ export interface Database {
         }
         Update: {
           user_id?: string
-          college?: string | null
           interests?: string[] | null
           skills?: string[] | null
           github_url?: string | null
