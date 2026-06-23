@@ -4,7 +4,7 @@
   "scripts": {
     "postinstall": "cd avora_repo && npm install",
     "dev": "cd avora_repo && npm run dev",
-    "build": "cd avora_repo && npm run build",
+    "build": "cd avora_repo && npm run build && cp -r dist ../dist",
     "preview": "cd avora_repo && npm run preview",
     "lint": "cd avora_repo && npm run lint"
   }
