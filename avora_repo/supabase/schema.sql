@@ -197,9 +197,9 @@ CREATE POLICY "Users can insert messages where they are sender."
   ON messages FOR INSERT
   WITH CHECK ( auth.uid() = sender_id );
 
-CREATE POLICY "Users can update their own messages."
+CREATE POLICY "Users can update their own messages or mark received as read."
   ON messages FOR UPDATE
-  USING ( auth.uid() = sender_id );
+  USING ( auth.uid() = sender_id OR auth.uid() = receiver_id );
 
 
 -- Create Meetings table

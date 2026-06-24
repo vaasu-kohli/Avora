@@ -19,6 +19,7 @@ export default function Messages() {
   }
 
   const pendingRequests = connections.filter(c => c.toUserId === currentUser.id && c.status === 'pending');
+  const sentRequests = connections.filter(c => c.fromUserId === currentUser.id && (c.status === 'pending' || c.status === 'rejected'));
   const acceptedConnections = connections.filter(c => 
     c.status === 'accepted' && (c.fromUserId === currentUser.id || c.toUserId === currentUser.id)
   );
@@ -73,6 +74,42 @@ export default function Messages() {
         </section>
       )}
 
+      {sentRequests.length > 0 && (
+        <section className="mb-12">
+          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-4 flex items-center gap-2">
+            Pending Requests Sent <span className="bg-white/10 text-white/70 text-[10px] px-2 py-0.5 rounded-full">{sentRequests.length}</span>
+          </h2>
+          <div className="flex flex-col gap-3">
+            {sentRequests.map(req => {
+              const p = getProfile(req.toUserId);
+              if (!p) return null;
+              
+              return (
+                <div key={req.id} className="bg-white/5 border border-white/10 p-4 rounded-3xl flex flex-col md:flex-row md:items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1">
+                     <img src={p.photoUrl} alt={p.name} className="w-16 h-16 rounded-full object-cover shrink-0 border border-white/10 opacity-70" />
+                     <div className="flex-1 min-w-0">
+                       <h3 className="font-semibold text-white/80 truncate text-lg">{p.name}</h3>
+                       <p className="text-[10px] font-medium text-white/40 uppercase tracking-widest mb-2">{p.userType}</p>
+                     </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 shrink-0 mt-4 md:mt-0">
+                    <span className={`text-xs px-3 py-1 rounded-full border ${
+                      req.status === 'rejected' 
+                        ? 'border-red-500/30 text-red-400 bg-red-500/10' 
+                        : 'border-yellow-500/30 text-yellow-400 bg-yellow-500/10'
+                    }`}>
+                      {req.status === 'rejected' ? 'Declined' : 'Pending Approval'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section>
         <h2 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-4">Active Chats</h2>
         {acceptedConnections.length === 0 ? (
@@ -92,10 +129,18 @@ export default function Messages() {
                 (m.senderId === otherId && m.receiverId === currentUser.id)
               ).sort((a,b) => b.timestamp - a.timestamp);
               const lastMsg = connMsgs[0];
+              const unreadCount = connMsgs.filter(m => m.receiverId === currentUser.id && !m.read).length;
               
               return (
                 <div key={conn.id} onClick={() => setActiveChatId(otherId)} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/10 transition-colors cursor-pointer group">
-                  <img src={p.photoUrl} alt={p.name} className="w-14 h-14 rounded-full object-cover border border-white/10" />
+                  <div className="relative">
+                    <img src={p.photoUrl} alt={p.name} className="w-14 h-14 rounded-full object-cover border border-white/10" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-[#3B82F6] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#0B1120]">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                      <div className="flex justify-between items-baseline mb-1">
                        <h3 className="font-medium text-white truncate">{p.name}</h3>

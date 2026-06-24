@@ -172,6 +172,16 @@ export const api = {
        console.log('[API] requestConnection - No authenticated user found');
        return null;
      }
+
+     const { data: existing, error: existingErr } = await supabase.from('connections')
+       .select('*')
+       .or(`and(sender_id.eq.${user.user.id},receiver_id.eq.${toUserId}),and(sender_id.eq.${toUserId},receiver_id.eq.${user.user.id})`)
+       .maybeSingle();
+
+     if (existing) {
+       console.log('[API] requestConnection - Connection already exists:', existing);
+       return existing;
+     }
      
      console.log(`[API] requestConnection - Inserting connection for sender ${user.user.id} to receiver ${toUserId}`);
      const { data, error } = await supabase.from('connections').insert({
@@ -190,7 +200,11 @@ export const api = {
   },
 
   async updateConnection(id: string, status: 'accepted' | 'rejected') {
-     await supabase.from('connections').update({ status }).eq('id', id);
+     const { error } = await supabase.from('connections').update({ status }).eq('id', id);
+     if (error) {
+       console.error('[API] updateConnection error:', error);
+       throw error;
+     }
   },
 
   async getMessages(): Promise<Message[]> {
@@ -214,6 +228,17 @@ export const api = {
        timestamp: new Date(m.created_at).getTime(),
        read: m.read
      }));
+  },
+
+  async markMessagesAsRead(connectionId: string, userId: string) {
+     const { error } = await supabase.from('messages')
+       .update({ read: true })
+       .eq('connection_id', connectionId)
+       .eq('receiver_id', userId);
+     
+     if (error) {
+       console.error('[API] markMessagesAsRead error:', error);
+     }
   },
 
   async sendMessage(connectionId: string, toUserId: string, content: string) {

@@ -13,6 +13,7 @@ interface AppContextType {
   updateConnectionStatus: (requestId: string, status: 'accepted' | 'rejected') => Promise<void>;
   messages: Message[];
   sendMessage: (connectionId: string, toUserId: string, content: string) => Promise<void>;
+  markMessagesAsRead: (connectionId: string) => Promise<void>;
   meetings: Meeting[];
   createMeeting: (connectionId: string, builderId: string, date: string, time: string) => Promise<void>;
   updateMeetingStatus: (meetingId: string, status: 'accepted' | 'declined') => Promise<void>;
@@ -174,6 +175,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const markMessagesAsRead = async (connectionId: string) => {
+    if (!currentUser) return;
+    try {
+      await api.markMessagesAsRead(connectionId, currentUser.id);
+      const msgs = await api.getMessages();
+      setMessages(msgs);
+    } catch (err) {
+      console.error("Failed to mark messages as read", err);
+    }
+  };
+
   const createMeeting = async (connectionId: string, builderId: string, date: string, time: string) => {
     try {
       await api.createMeeting(connectionId, builderId, date, time);
@@ -213,6 +225,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateConnectionStatus,
       messages,
       sendMessage,
+      markMessagesAsRead,
       meetings,
       createMeeting,
       updateMeetingStatus,

@@ -4,17 +4,25 @@ import { Compass, MessageSquare, UserCircle, Bell, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 export default function Layout() {
-  const { currentUser } = useAppContext();
+  const { currentUser, connections, messages } = useAppContext();
   const location = useLocation();
 
   if (!currentUser) {
     return <Navigate to="/" replace />;
   }
 
+  // Pending requests where current user is receiver
+  const pendingRequestsCount = connections.filter(c => c.toUserId === currentUser.id && c.status === 'pending').length;
+  // Pending requests where current user is sender
+  const sentPendingRequestsCount = connections.filter(c => c.fromUserId === currentUser.id && c.status === 'pending').length;
+  // Unread messages where current user is receiver
+  const unreadMessagesCount = messages.filter(m => m.receiverId === currentUser.id && !m.read).length;
+  const totalMessagesBadge = pendingRequestsCount + unreadMessagesCount + sentPendingRequestsCount;
+
   const navItems = [
     { name: 'Discover', path: '/discover', icon: Compass },
     { name: 'Connections', path: '/connections', icon: Users },
-    { name: 'Messages', path: '/messages', icon: MessageSquare },
+    { name: 'Messages', path: '/messages', icon: MessageSquare, badge: totalMessagesBadge },
     { name: 'Profile', path: '/profile', icon: UserCircle },
   ];
 
@@ -34,14 +42,21 @@ export default function Layout() {
               <Link
                 key={item.name}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive 
                     ? 'bg-primary/10 text-primary font-medium' 
                     : 'text-muted-foreground hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <item.icon className="w-5 h-5" />
-                {item.name}
+                <div className="flex items-center gap-3">
+                  <item.icon className="w-5 h-5" />
+                  {item.name}
+                </div>
+                {item.badge && item.badge > 0 ? (
+                  <span className="bg-[#3B82F6] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {item.badge}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -87,11 +102,18 @@ export default function Layout() {
               <li key={item.name} className="flex-1">
                 <Link
                   to={item.path}
-                  className={`flex flex-col items-center gap-1 transition-colors ${
+                  className={`flex flex-col items-center gap-1 transition-colors relative ${
                     isActive ? 'text-primary' : 'text-muted-foreground'
                   }`}
                 >
-                  <item.icon className={`w-6 h-6 ${isActive ? 'fill-primary/20' : ''}`} />
+                  <div className="relative">
+                    <item.icon className={`w-6 h-6 ${isActive ? 'fill-primary/20' : ''}`} />
+                    {item.badge && item.badge > 0 ? (
+                      <span className="absolute -top-1 -right-2 bg-[#3B82F6] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[16px] text-center border border-[#0B1120]">
+                        {item.badge}
+                      </span>
+                    ) : null}
+                  </div>
                   <span className="text-[10px] font-medium">{item.name}</span>
                 </Link>
               </li>
