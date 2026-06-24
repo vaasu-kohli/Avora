@@ -224,9 +224,9 @@ export const api = {
        id: m.id,
        senderId: m.sender_id,
        receiverId: m.receiver_id,
-       content: m.message_text,
-       timestamp: new Date(m.created_at).getTime(),
-       read: m.read
+       content: m.content || m.message_text,
+       timestamp: new Date(m.timestamp || m.created_at).getTime(),
+       read: m.read || false
      }));
   },
 
@@ -253,7 +253,7 @@ export const api = {
        connection_id: connectionId,
        sender_id: user.user.id,
        receiver_id: toUserId,
-       message_text: content
+       content: content
      }).select().single();
      
      if (error) {
