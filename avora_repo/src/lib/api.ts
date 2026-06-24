@@ -168,15 +168,24 @@ export const api = {
 
   async requestConnection(toUserId: string, introMessage?: string) {
      const { data: user } = await supabase.auth.getUser();
-     if (!user.user) return null;
+     if (!user.user) {
+       console.log('[API] requestConnection - No authenticated user found');
+       return null;
+     }
      
+     console.log(`[API] requestConnection - Inserting connection for sender ${user.user.id} to receiver ${toUserId}`);
      const { data, error } = await supabase.from('connections').insert({
        sender_id: user.user.id,
        receiver_id: toUserId,
        status: 'pending',
        intro_message: introMessage
      }).select().single();
-     if (error) throw error;
+     
+     if (error) {
+       console.error('[API] requestConnection error:', error);
+       throw error;
+     }
+     console.log('[API] requestConnection - Insert successful:', data);
      return data;
   },
 
@@ -209,15 +218,24 @@ export const api = {
 
   async sendMessage(connectionId: string, toUserId: string, content: string) {
      const { data: user } = await supabase.auth.getUser();
-     if (!user.user) return null;
+     if (!user.user) {
+       console.log('[API] sendMessage - No authenticated user found');
+       return null;
+     }
      
+     console.log(`[API] sendMessage - Inserting message for connection ${connectionId}, sender ${user.user.id}, receiver ${toUserId}`);
      const { data, error } = await supabase.from('messages').insert({
        connection_id: connectionId,
        sender_id: user.user.id,
        receiver_id: toUserId,
        message_text: content
      }).select().single();
-     if (error) throw error;
+     
+     if (error) {
+       console.error('[API] sendMessage error:', error);
+       throw error;
+     }
+     console.log('[API] sendMessage - Insert successful:', data);
      return data;
   },
 
@@ -245,8 +263,12 @@ export const api = {
 
   async createMeeting(connectionId: string, builderId: string, date: string, time: string): Promise<Meeting | null> {
     const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return null;
+    if (!user.user) {
+      console.log('[API] createMeeting - No authenticated user found');
+      return null;
+    }
     
+    console.log(`[API] createMeeting - Inserting meeting for connection ${connectionId}, founder ${user.user.id}, builder ${builderId}`);
     const { data, error } = await supabase.from('meetings').insert({
       connection_id: connectionId,
       founder_id: user.user.id,
@@ -256,7 +278,14 @@ export const api = {
       status: 'pending'
     }).select().single();
 
-    if (error || !data) return null;
+    if (error) {
+      console.error('[API] createMeeting error:', error);
+      return null;
+    }
+    
+    if (!data) return null;
+
+    console.log('[API] createMeeting - Insert successful:', data);
 
     // Send a message directly indicating a meeting request so it appears in chat
     const meetingMessage = `[MEETING_INVITE]: I've proposed a meeting on ${date} at ${time}.`;

@@ -152,6 +152,11 @@ CREATE TABLE connections (
   UNIQUE(sender_id, receiver_id)
 );
 
+-- Secure role-level permissions
+GRANT SELECT, INSERT, UPDATE ON TABLE connections TO authenticated;
+GRANT SELECT ON TABLE connections TO anon;
+GRANT ALL ON TABLE connections TO service_role;
+
 ALTER TABLE connections ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Connections are viewable by participants."
@@ -176,6 +181,11 @@ CREATE TABLE messages (
   read BOOLEAN DEFAULT false NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+-- Secure role-level permissions
+GRANT SELECT, INSERT, UPDATE ON TABLE messages TO authenticated;
+GRANT SELECT ON TABLE messages TO anon;
+GRANT ALL ON TABLE messages TO service_role;
 
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
@@ -203,6 +213,11 @@ CREATE TABLE meetings (
   status TEXT CHECK (status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending' NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+-- Secure role-level permissions
+GRANT SELECT, INSERT, UPDATE ON TABLE meetings TO authenticated;
+GRANT SELECT ON TABLE meetings TO anon;
+GRANT ALL ON TABLE meetings TO service_role;
 
 ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
 
