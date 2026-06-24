@@ -188,10 +188,14 @@ export const api = {
      const { data: user } = await supabase.auth.getUser();
      if (!user.user) return [];
 
-     const { data } = await supabase.from('messages')
-       .select('*')
-       .or(`sender_id.eq.${user.user.id},receiver_id.eq.${user.user.id}`);
+     const { data, error } = await supabase.from('messages')
+       .select('*');
        
+     if (error) {
+       console.error('[API] getMessages error:', error);
+       return [];
+     }
+     
      if (!data) return [];
      return data.map((m: any) => ({
        id: m.id,
