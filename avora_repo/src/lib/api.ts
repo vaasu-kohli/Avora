@@ -257,6 +257,7 @@ export const api = {
      }).select().single();
      
      if (error) {
+       console.error('[API] sendMessage error object full:', JSON.stringify(error, null, 2));
        console.error('[API] sendMessage error:', error);
        throw error;
      }
