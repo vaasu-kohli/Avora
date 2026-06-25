@@ -14,18 +14,42 @@ export default function Discovery() {
 
   // Filter out the current user, show opposite type only
   const potentialMatches = useMemo(() => {
+    console.log('[Discover] Total profiles fetched:', profiles.length);
     if (!currentUser) return [];
     
-    const unseen = profiles.filter(p => 
-      p.id !== currentUser.id && 
-      p.userType !== currentUser.userType // Only show opposite type
-    );
+    console.log('[Discover] Current user ID:', currentUser.id);
+    console.log('[Discover] Current user type:', currentUser.userType);
+    
+    const unseen = profiles.filter(p => {
+      let isExcluded = false;
+      let reason = '';
+      
+      if (p.id === currentUser.id) {
+        isExcluded = true;
+        reason = 'Same as current user';
+      } else if (p.userType === currentUser.userType) {
+        isExcluded = true;
+        reason = `Same user type (${p.userType})`;
+      } else if (seenProfiles.includes(p.id)) {
+        isExcluded = true;
+        reason = 'Already seen (in seenProfiles)';
+      }
+      
+      if (isExcluded) {
+        console.log(`[Discover] Filtered out profile ID: ${p.id}. Reason: ${reason}`);
+        return false;
+      }
+      
+      return true;
+    });
+
+    console.log('[Discover] Profiles after filtering:', unseen.length);
 
     // Sort by matching score (mocking it by reason count for now)
     return unseen.sort((a, b) => {
       return getMatchReasons(currentUser, b).length - getMatchReasons(currentUser, a).length;
     });
-  }, [currentUser, profiles]);
+  }, [currentUser, profiles, seenProfiles]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentProfile = potentialMatches[currentIndex];

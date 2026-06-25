@@ -70,19 +70,25 @@ export const api = {
 
   async getAllProfiles(): Promise<UserProfile[]> {
     try {
-      const { data: users } = await supabase.from('users').select('id, role');
+      const { data: users, error } = await supabase.from('users').select('id, role');
+      console.log('[API] getAllProfiles - users fetched:', users?.length, 'error:', error);
       if (!users) return [];
 
       const profilesList: UserProfile[] = [];
       for (const u of users) {
         if (u.role && u.role !== 'none') {
-          const p = await this.getProfile(u.id);
-          if (p) profilesList.push(p);
+          try {
+            const p = await this.getProfile(u.id);
+            if (p) profilesList.push(p);
+          } catch(err) {
+            console.error(`[API] Error fetching profile ${u.id}:`, err);
+          }
         }
       }
+      console.log('[API] getAllProfiles - final profiles returned:', profilesList.length);
       return profilesList;
     } catch(err) {
-      console.error(err);
+      console.error('[API] getAllProfiles error:', err);
       return [];
     }
   },
