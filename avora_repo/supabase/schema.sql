@@ -43,8 +43,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   bio TEXT,
   college TEXT,
   city TEXT,
-  linkedin_url TEXT,
-  interests TEXT[]
+  linkedin_url TEXT
 );
 
 -- Secure role-level permissions
@@ -77,11 +76,10 @@ CREATE TABLE IF NOT EXISTS founders (
   startup_name TEXT NOT NULL,
   startup_description TEXT,
   startup_stage TEXT NOT NULL,
-  problem_statement TEXT NOT NULL,
   industry TEXT,
   looking_for TEXT[],
   website TEXT,
-  availability TEXT,
+  commitment TEXT,
   equity TEXT
 );
 
@@ -111,13 +109,14 @@ CREATE POLICY "Users can update their own founder profile."
 -- Create Builders table
 CREATE TABLE IF NOT EXISTS builders (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE PRIMARY KEY,
+  interests TEXT[],
   skills TEXT[],
   github_url TEXT,
   leetcode_url TEXT,
   portfolio_url TEXT,
   resume_url TEXT,
   current_projects TEXT,
-  availability TEXT
+  commitment TEXT
 );
 
 -- Secure role-level permissions

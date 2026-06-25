@@ -110,7 +110,7 @@ export const api = {
       if (profileErr) throw new Error(`Profiles update error: ${profileErr.message}`);
 
       if (profile.userType === 'founder') {
-        const founderPayload = {
+        const founderPayload: any = {
           user_id: profile.id,
           designation: profile.designation || '',
           startup_name: profile.startupName || '',
@@ -118,11 +118,20 @@ export const api = {
           startup_stage: profile.startupStage || '',
           industry: profile.industry || '',
           looking_for: profile.lookingFor || [],
-          website: profile.website || '',
-          equity: profile.equity || ''
+          website: profile.website || ''
         };
-        console.log('[API] Saving to founders table:', founderPayload);
-        const { error: fErr } = await supabase.from('founders').upsert(founderPayload, { onConflict: 'user_id' });
+
+        const payloadWithEquity = { ...founderPayload, equity: profile.equity || '' };
+        console.log('[API] Saving to founders table (with equity):', payloadWithEquity);
+        let { error: fErr } = await supabase.from('founders').upsert(payloadWithEquity, { onConflict: 'user_id' });
+        
+        if (fErr && fErr.message.includes('equity')) {
+           console.warn('[API] Equity column missing in schema, retrying without it');
+           console.log('[API] Saving to founders table (without equity):', founderPayload);
+           const retry = await supabase.from('founders').upsert(founderPayload, { onConflict: 'user_id' });
+           fErr = retry.error;
+        }
+
         if (fErr) throw new Error(`Founders update error: ${fErr.message}`);
       } else {
         const builderPayload = {
