@@ -240,16 +240,13 @@ export default function Discovery() {
       {!showIntroModal && (
         <div className="flex flex-col gap-3 mt-6 z-10 w-full px-4">
           <div className="flex items-center gap-3 w-full justify-center">
-            {currentIndex > 0 ? (
-              <button 
-                onClick={() => { setShowDetail(false); setCurrentIndex(prev => prev - 1); }}
-                className="flex items-center justify-center gap-2 px-4 h-12 rounded-full bg-white/5 backdrop-blur-lg border border-white/10 text-white/50 hover:bg-white/10 hover:text-white transition-all font-medium flex-1"
-              >
-                <ArrowLeft className="w-4 h-4" /> Previous
-              </button>
-            ) : (
-              <div className="flex-1" />
-            )}
+            <button 
+              onClick={() => { setShowDetail(false); setCurrentIndex(prev => prev - 1); }}
+              disabled={currentIndex === 0}
+              className={cn("flex items-center justify-center gap-2 px-4 h-12 rounded-full transition-all font-medium flex-1", currentIndex === 0 ? "bg-white/5 border border-white/5 text-white/20 cursor-not-allowed" : "bg-white/5 backdrop-blur-lg border border-white/10 text-white/50 hover:bg-white/10 hover:text-white")}
+            >
+              <ArrowLeft className="w-4 h-4" /> Previous
+            </button>
             
             <button 
               onClick={() => {
@@ -269,16 +266,13 @@ export default function Discovery() {
               <Heart className="w-4 h-4" /> {hasConnection ? 'Connected' : 'Connect'}
             </button>
             
-            {currentIndex < potentialMatches.length - 1 ? (
-              <button 
-                onClick={() => { setShowDetail(false); setCurrentIndex(prev => prev + 1); }}
-                className="flex items-center justify-center gap-2 px-4 h-12 rounded-full bg-white/5 backdrop-blur-lg border border-white/10 text-white/50 hover:bg-white/10 hover:text-white transition-all font-medium flex-1"
-              >
-                Next <ArrowRight className="w-4 h-4" />
-              </button>
-            ) : (
-              <div className="flex-1" />
-            )}
+            <button 
+              onClick={() => { setShowDetail(false); setCurrentIndex(prev => prev + 1); }}
+              disabled={currentIndex === potentialMatches.length - 1}
+              className={cn("flex items-center justify-center gap-2 px-4 h-12 rounded-full transition-all font-medium flex-1", currentIndex === potentialMatches.length - 1 ? "bg-white/5 border border-white/5 text-white/20 cursor-not-allowed" : "bg-white/5 backdrop-blur-lg border border-white/10 text-white/50 hover:bg-white/10 hover:text-white")}
+            >
+              Next <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
           {currentUser.userType === 'founder' && (
             <button className="flex items-center justify-center gap-2 w-full h-10 rounded-full bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all text-xs font-semibold">
