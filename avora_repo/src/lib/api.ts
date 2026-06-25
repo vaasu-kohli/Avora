@@ -70,25 +70,139 @@ export const api = {
 
   async getAllProfiles(): Promise<UserProfile[]> {
     try {
-      const { data: users, error } = await supabase.from('users').select('id, role');
-      console.log('[API] getAllProfiles - users fetched:', users?.length, 'error:', error);
+      const { data: users, error: usersErr } = await supabase.from('users').select('id, role');
+      if (usersErr) {
+        throw new Error(`Database error fetching users: ${usersErr.message} (Code: ${usersErr.code})`);
+      }
       if (!users) return [];
 
+      console.log(`[API] getAllProfiles - Total users fetched: ${users.length}`);
+
       const profilesList: UserProfile[] = [];
+      const failedProfiles: { id: string, error: string }[] = [];
+      const skippedProfiles: { id: string, reason: string }[] = [];
+
       for (const u of users) {
-        if (u.role && u.role !== 'none') {
-          try {
-            const p = await this.getProfile(u.id);
-            if (p) profilesList.push(p);
-          } catch(err) {
-            console.error(`[API] Error fetching profile ${u.id}:`, err);
+        if (!u.role || u.role === 'none') {
+          skippedProfiles.push({ id: u.id, reason: 'Role is missing or none' });
+          continue;
+        }
+
+        try {
+          // Fetch profiles row
+          const { data: profileRow, error: pErr } = await supabase.from('profiles').select('*').eq('user_id', u.id).single();
+          
+          if (pErr) {
+            if (pErr.code === 'PGRST116') {
+              skippedProfiles.push({ id: u.id, reason: 'Missing profiles row (User has not completed onboarding)' });
+              continue;
+            } else if (pErr.code === '42501') {
+              throw new Error(`RLS/permission error on profiles table: ${pErr.message}`);
+            } else if (pErr.code && pErr.code.startsWith('42')) {
+              throw new Error(`Schema mismatch on profiles table: ${pErr.message}`);
+            } else {
+              throw new Error(`Database error on profiles table: ${pErr.message}`);
+            }
           }
+          
+          if (!profileRow) {
+            skippedProfiles.push({ id: u.id, reason: 'Missing profiles row (User has not completed onboarding)' });
+            continue;
+          }
+
+          const userType = u.role as UserType;
+          let finalProfile: UserProfile = {
+            id: u.id,
+            userType,
+            name: profileRow.name,
+            photoUrl: profileRow.photo_url || '',
+            college: profileRow.college || '',
+            city: profileRow.city || '',
+            linkedin: profileRow.linkedin_url || '',
+            github: '',
+            portfolio: '',
+            bio: profileRow.bio || '',
+            skills: [],
+            interests: [],
+            commitment: '',
+          };
+
+          // Fetch type-specific row
+          if (userType === 'founder') {
+            const { data: f, error: fErr } = await supabase.from('founders').select('*').eq('user_id', u.id).single();
+            if (fErr) {
+              if (fErr.code === 'PGRST116') {
+                throw new Error('Missing founders row');
+              } else if (fErr.code === '42501') {
+                throw new Error(`RLS/permission error on founders table: ${fErr.message}`);
+              } else if (fErr.code && fErr.code.startsWith('42')) {
+                throw new Error(`Schema mismatch on founders table: ${fErr.message}`);
+              } else {
+                throw new Error(`Database error on founders table: ${fErr.message}`);
+              }
+            }
+            if (!f) throw new Error('Missing founders row');
+            
+            finalProfile.designation = f.designation;
+            finalProfile.startupName = f.startup_name;
+            finalProfile.startupDescription = f.startup_description || '';
+            finalProfile.problemSolved = f.startup_description || ''; 
+            finalProfile.industry = f.industry || '';
+            finalProfile.startupStage = f.startup_stage;
+            finalProfile.lookingFor = f.looking_for || [];
+            finalProfile.website = f.website || '';
+            finalProfile.equity = f.equity || '';
+            
+          } else if (userType === 'builder') {
+            const { data: b, error: bErr } = await supabase.from('builders').select('*').eq('user_id', u.id).single();
+            if (bErr) {
+              if (bErr.code === 'PGRST116') {
+                throw new Error('Missing builders row');
+              } else if (bErr.code === '42501') {
+                throw new Error(`RLS/permission error on builders table: ${bErr.message}`);
+              } else if (bErr.code && bErr.code.startsWith('42')) {
+                throw new Error(`Schema mismatch on builders table: ${bErr.message}`);
+              } else {
+                throw new Error(`Database error on builders table: ${bErr.message}`);
+              }
+            }
+            if (!b) throw new Error('Missing builders row');
+            
+            finalProfile.interests = b.interests || [];
+            finalProfile.skills = b.skills || [];
+            finalProfile.github = b.github_url || '';
+            finalProfile.leetcode = b.leetcode_url || '';
+            finalProfile.portfolio = b.portfolio_url || '';
+            finalProfile.resumeUrl = b.resume_url || '';
+            finalProfile.currentProjects = b.current_projects || '';
+            finalProfile.commitment = b.commitment || '';
+          }
+
+          profilesList.push(finalProfile);
+
+        } catch(err: any) {
+          failedProfiles.push({ id: u.id, error: err.message || err.toString() });
         }
       }
-      console.log('[API] getAllProfiles - final profiles returned:', profilesList.length);
+
+      console.log('[API] --- getAllProfiles Summary ---');
+      console.log(`Total users fetched: ${users.length}`);
+      console.log(`Successfully loaded profiles: ${profilesList.length}`);
+      console.log(`Failed profiles: ${failedProfiles.length}`);
+      if (failedProfiles.length > 0) {
+        console.log('Failed profiles details:', failedProfiles);
+      }
+      console.log(`Skipped users: ${skippedProfiles.length}`);
+      if (skippedProfiles.length > 0) {
+        console.log('Skipped users details:', skippedProfiles);
+      }
+      console.log('----------------------------------');
+
       return profilesList;
+
     } catch(err) {
-      console.error('[API] getAllProfiles error:', err);
+      console.error('[API] Fatal error in getAllProfiles:', err);
+      // We only return [] if the users table fetch itself fails
       return [];
     }
   },

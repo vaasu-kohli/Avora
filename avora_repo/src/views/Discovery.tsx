@@ -30,9 +30,6 @@ export default function Discovery() {
       } else if (p.userType === currentUser.userType) {
         isExcluded = true;
         reason = `Same user type (${p.userType})`;
-      } else if (seenProfiles.includes(p.id)) {
-        isExcluded = true;
-        reason = 'Already seen (in seenProfiles)';
       }
       
       if (isExcluded) {
@@ -49,7 +46,7 @@ export default function Discovery() {
     return unseen.sort((a, b) => {
       return getMatchReasons(currentUser, b).length - getMatchReasons(currentUser, a).length;
     });
-  }, [currentUser, profiles, seenProfiles]);
+  }, [currentUser, profiles]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentProfile = potentialMatches[currentIndex];
