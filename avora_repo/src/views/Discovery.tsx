@@ -139,14 +139,11 @@ export default function Discovery() {
                             Stage: {currentProfile.startupStage}
                           </span>
                         )}
-                        {currentProfile.commitment && (
-                          <span className="px-2.5 py-1 rounded-md bg-white/5 text-white/70 text-[10px] font-bold uppercase tracking-wider border border-white/10">
-                            {currentProfile.commitment}
+                        {currentProfile.equity && currentProfile.equity !== '0' && currentProfile.equity !== '0%' && (
+                          <span className="px-2.5 py-1 rounded-md bg-[#10B981]/10 text-[#10B981] text-[10px] font-bold uppercase tracking-wider border border-[#10B981]/20">
+                            Equity: {currentProfile.equity}
                           </span>
                         )}
-                        <span className="px-2.5 py-1 rounded-md bg-[#10B981]/10 text-[#10B981] text-[10px] font-bold uppercase tracking-wider border border-[#10B981]/20">
-                          Equity Available
-                        </span>
                         {currentProfile.city && (
                           <span className="px-2.5 py-1 rounded-md bg-white/5 text-white/70 text-[10px] font-bold uppercase tracking-wider border border-white/10 flex items-center gap-1">
                             <MapPin className="w-3 h-3" /> {currentProfile.city}
@@ -339,6 +336,7 @@ function ProfileDetailView({ profile, matchReasons, onClose }: { profile: UserPr
               <div className="flex flex-wrap gap-2 text-xs">
                 {profile.industry && <span className="px-2 py-1 rounded bg-white/5 text-white/70">{profile.industry}</span>}
                 {profile.startupStage && <span className="px-2 py-1 rounded bg-[#14B8A6]/10 text-[#14B8A6]">{profile.startupStage}</span>}
+                {profile.equity && profile.equity !== '0' && profile.equity !== '0%' && <span className="px-2 py-1 rounded bg-[#10B981]/10 text-[#10B981]">Equity: {profile.equity}</span>}
               </div>
             </div>
           </div>

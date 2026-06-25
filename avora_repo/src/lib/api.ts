@@ -42,6 +42,7 @@ export const api = {
           finalProfile.startupStage = f.startup_stage;
           finalProfile.lookingFor = f.looking_for || [];
           finalProfile.website = f.website || '';
+          finalProfile.equity = f.equity || '';
         }
       } else if (userType === 'builder') {
         const { data: b, error: bErr } = await supabase.from('builders').select('*').eq('user_id', userId).single();
@@ -117,7 +118,8 @@ export const api = {
           startup_stage: profile.startupStage || '',
           industry: profile.industry || '',
           looking_for: profile.lookingFor || [],
-          website: profile.website || ''
+          website: profile.website || '',
+          equity: profile.equity || ''
         };
         console.log('[API] Saving to founders table:', founderPayload);
         const { error: fErr } = await supabase.from('founders').upsert(founderPayload, { onConflict: 'user_id' });

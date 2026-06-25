@@ -200,6 +200,11 @@ export default function EditProfileModal({ currentUser, onClose, onSave }: EditP
               </div>
               
               <div>
+                 <label className="text-xs text-white/50 mb-1 block">Equity Available (Optional)</label>
+                 <input type="text" value={formData.equity || ''} onChange={e => updateForm({ equity: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" placeholder="e.g. 5%, 10-15%" />
+              </div>
+              
+              <div>
                 <label className="text-xs text-white/50 mb-1 block">Team Needs</label>
                 <div className="flex flex-wrap gap-2">
                   {ROLES.map(role => {

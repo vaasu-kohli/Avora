@@ -69,6 +69,7 @@ export interface Database {
           looking_for: string[] | null
           website: string | null
           commitment: string | null
+          equity: string | null
         }
         Insert: {
           user_id: string
@@ -80,6 +81,7 @@ export interface Database {
           looking_for?: string[] | null
           website?: string | null
           commitment?: string | null
+          equity?: string | null
         }
         Update: {
           user_id?: string
@@ -91,6 +93,7 @@ export interface Database {
           looking_for?: string[] | null
           website?: string | null
           commitment?: string | null
+          equity?: string | null
         }
       }
       builders: {

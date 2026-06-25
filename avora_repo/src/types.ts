@@ -30,6 +30,7 @@ export interface UserProfile {
   startupStage?: string;
   lookingFor?: string[];
   website?: string;
+  equity?: string;
 }
 
 export interface ConnectionRequest {

@@ -352,6 +352,7 @@ export default function Onboarding() {
               
               <textarea placeholder="Startup Description" value={formData.startupDescription || ''} onChange={e => updateForm({ startupDescription: e.target.value })} rows={3} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6] resize-none" />
               <input type="text" placeholder="Industry" value={formData.industry || ''} onChange={e => updateForm({ industry: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
+              <input type="text" placeholder="Equity Available (e.g. 5%)" value={formData.equity || ''} onChange={e => updateForm({ equity: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
               
               <div className="pt-2">
                 <p className="text-xs text-white/50 mb-2">Team Needs (Optional)</p>

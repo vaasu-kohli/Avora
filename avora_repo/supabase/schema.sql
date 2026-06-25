@@ -81,7 +81,8 @@ CREATE TABLE IF NOT EXISTS founders (
   industry TEXT,
   looking_for TEXT[],
   website TEXT,
-  availability TEXT
+  availability TEXT,
+  equity TEXT
 );
 
 -- Secure role-level permissions
