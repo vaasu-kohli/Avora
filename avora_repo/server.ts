@@ -65,15 +65,19 @@ app.post('/api/notify/connection', async (req, res) => {
     const textBody = `You have a new connection request on Avora from ${senderProfile?.name || 'Someone'}${startupStr}.\nIntro: ${introMessage || 'No intro message'}\n\n[ View Request ]`;
     
     try {
-      await resend.emails.send({
+      const response = await resend.emails.send({
         from: EMAIL_FROM,
         to: recipient.email,
         subject,
         text: textBody,
       });
-      console.log(`[EMAIL SENT] Connection request to ${recipient.email}`);
+      if (response.error) {
+        console.error('[EMAIL ERROR] Resend API Error:', response.error);
+        return res.status(500).json({ success: false, error: response.error });
+      }
+      console.log(`[EMAIL SENT] Connection request to ${recipient.email}`, response.data);
     } catch (err) {
-      console.error('[EMAIL ERROR]', err);
+      console.error('[EMAIL ERROR] Network/Unexpected:', err);
       return res.status(500).json({ success: false, error: 'Email delivery failed' });
     }
   }
@@ -97,15 +101,19 @@ app.post('/api/notify/connection-accepted', async (req, res) => {
     const textBody = `${accepterProfile?.name || 'Someone'} accepted your connection request.\n\n[ Start Chatting ]`;
     
     try {
-      await resend.emails.send({
+      const response = await resend.emails.send({
         from: EMAIL_FROM,
         to: recipient.email,
         subject,
         text: textBody,
       });
-      console.log(`[EMAIL SENT] Connection accepted to ${recipient.email}`);
+      if (response.error) {
+        console.error('[EMAIL ERROR] Resend API Error:', response.error);
+        return res.status(500).json({ success: false, error: response.error });
+      }
+      console.log(`[EMAIL SENT] Connection accepted to ${recipient.email}`, response.data);
     } catch (err) {
-      console.error('[EMAIL ERROR]', err);
+      console.error('[EMAIL ERROR] Network/Unexpected:', err);
       return res.status(500).json({ success: false, error: 'Email delivery failed' });
     }
   }
@@ -142,15 +150,19 @@ app.post('/api/notify/message', async (req, res) => {
     const textBody = `You have a new unread message on Avora from ${senderProfile?.name || 'Someone'}.\n\n"${content}"\n\n[ View Messages ]`;
     
     try {
-      await resend.emails.send({
+      const response = await resend.emails.send({
         from: EMAIL_FROM,
         to: recipient.email,
         subject,
         text: textBody,
       });
-      console.log(`[EMAIL SENT] Message notification to ${recipient.email}`);
+      if (response.error) {
+        console.error('[EMAIL ERROR] Resend API Error:', response.error);
+        return res.status(500).json({ success: false, error: response.error });
+      }
+      console.log(`[EMAIL SENT] Message notification to ${recipient.email}`, response.data);
     } catch (err) {
-      console.error('[EMAIL ERROR]', err);
+      console.error('[EMAIL ERROR] Network/Unexpected:', err);
       return res.status(500).json({ success: false, error: 'Email delivery failed' });
     }
   }
@@ -174,15 +186,19 @@ app.post('/api/notify/meeting', async (req, res) => {
     const textBody = `${senderProfile?.name || 'Someone'} ${action} a meeting.\n\n[ View Meeting ]`;
     
     try {
-      await resend.emails.send({
+      const response = await resend.emails.send({
         from: EMAIL_FROM,
         to: recipient.email,
         subject,
         text: textBody,
       });
-      console.log(`[EMAIL SENT] Meeting update to ${recipient.email}`);
+      if (response.error) {
+        console.error('[EMAIL ERROR] Resend API Error:', response.error);
+        return res.status(500).json({ success: false, error: response.error });
+      }
+      console.log(`[EMAIL SENT] Meeting update to ${recipient.email}`, response.data);
     } catch (err) {
-      console.error('[EMAIL ERROR]', err);
+      console.error('[EMAIL ERROR] Network/Unexpected:', err);
       return res.status(500).json({ success: false, error: 'Email delivery failed' });
     }
   }
