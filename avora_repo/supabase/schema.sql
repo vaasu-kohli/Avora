@@ -249,14 +249,7 @@ CREATE TABLE IF NOT EXISTS user_presence (
   last_seen TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- Create pending emails table for batching
-CREATE TABLE IF NOT EXISTS pending_email_notifications (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  recipient_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
-);
+
 
 GRANT SELECT, INSERT, UPDATE ON TABLE notification_settings TO authenticated;
 GRANT SELECT ON TABLE notification_settings TO anon;
@@ -266,11 +259,8 @@ GRANT SELECT, INSERT, UPDATE ON TABLE user_presence TO authenticated;
 GRANT SELECT ON TABLE user_presence TO anon;
 GRANT ALL ON TABLE user_presence TO service_role;
 
-GRANT ALL ON TABLE pending_email_notifications TO service_role;
-
 ALTER TABLE notification_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_presence ENABLE ROW LEVEL SECURITY;
-ALTER TABLE pending_email_notifications ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage their own notification settings."
   ON notification_settings FOR ALL

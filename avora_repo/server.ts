@@ -134,60 +134,28 @@ app.post('/api/notify/message', async (req, res) => {
     return res.json({ success: true, skipped: 'online' });
   }
 
-  // Batching logic: add to pending database table
-  await supabase.from('pending_email_notifications').insert({
-    recipient_id: recipientId,
-    sender_id: senderId,
-    content
-  });
-
-  // Note: Actual email sending is deferred to the cron job to survive serverless restarts.
-  res.json({ success: true, queued: true });
-});
-
-// Endpoint for processing batched emails (To be called by Vercel Cron or similar scheduler)
-app.all('/api/cron/process-emails', async (req, res) => {
-  const { data: pending } = await supabase.from('pending_email_notifications').select('*').order('created_at', { ascending: true });
+  const { data: senderProfile } = await supabase.from('profiles').select('name').eq('user_id', senderId).single();
+  const { data: recipient } = await supabase.from('users').select('email').eq('id', recipientId).single();
   
-  if (!pending || pending.length === 0) {
-    return res.json({ success: true, processed: 0 });
+  if (recipient?.email) {
+    const subject = `New Message from ${senderProfile?.name || 'Someone'}`;
+    const textBody = `You have a new unread message on Avora from ${senderProfile?.name || 'Someone'}.\n\n"${content}"\n\n[ View Messages ]`;
+    
+    try {
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: recipient.email,
+        subject,
+        text: textBody,
+      });
+      console.log(`[EMAIL SENT] Message notification to ${recipient.email}`);
+    } catch (err) {
+      console.error('[EMAIL ERROR]', err);
+      return res.status(500).json({ success: false, error: 'Email delivery failed' });
+    }
   }
-  
-  // Group by recipient
-  const grouped = pending.reduce((acc: any, curr: any) => {
-     acc[curr.recipient_id] = acc[curr.recipient_id] || [];
-     acc[curr.recipient_id].push(curr);
-     return acc;
-  }, {});
-  
-  let processed = 0;
-  for (const [recipientId, messages] of Object.entries(grouped)) {
-     const msgs = messages as any[];
-     const { data: recipient } = await supabase.from('users').select('email').eq('id', recipientId).single();
-     
-     if (recipient?.email) {
-       const subject = `You have ${msgs.length} new messages on Avora`;
-       const textBody = `You have unread messages waiting for you.\n\n[ View Messages ]`;
-       
-       try {
-         await resend.emails.send({
-           from: EMAIL_FROM,
-           to: recipient.email,
-           subject,
-           text: textBody,
-         });
-         console.log(`[EMAIL SENT] Batched messages to ${recipient.email}`);
-       } catch (err) {
-         console.error('[EMAIL ERROR]', err);
-       }
-       
-       // Delete processed messages
-       await supabase.from('pending_email_notifications').delete().in('id', msgs.map(m => m.id));
-       processed += msgs.length;
-     }
-  }
-  
-  res.json({ success: true, processed });
+
+  res.json({ success: true, sent: true });
 });
 
 app.post('/api/notify/meeting', async (req, res) => {
