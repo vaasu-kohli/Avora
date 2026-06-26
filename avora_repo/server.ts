@@ -15,12 +15,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error("FATAL: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.");
+  process.exit(1);
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const EMAIL_FROM = process.env.RESEND_EMAIL_FROM || 'Avora <onboarding@resend.dev>'; // Use your verified domain in production
+const resendApiKey = process.env.RESEND_API_KEY;
+const EMAIL_FROM = process.env.RESEND_EMAIL_FROM;
+
+if (!resendApiKey || !EMAIL_FROM) {
+  console.error("FATAL: RESEND_API_KEY and RESEND_EMAIL_FROM are required.");
+  process.exit(1);
+}
+
+const resend = new Resend(resendApiKey);
 
 app.post('/api/ping', async (req, res) => {
   const { userId } = req.body;
@@ -51,27 +64,17 @@ app.post('/api/notify/connection', async (req, res) => {
     const subject = `New Connection Request from ${senderProfile?.name || 'Someone'}`;
     const textBody = `You have a new connection request on Avora from ${senderProfile?.name || 'Someone'}${startupStr}.\nIntro: ${introMessage || 'No intro message'}\n\n[ View Request ]`;
     
-    if (process.env.RESEND_API_KEY) {
-      try {
-        await resend.emails.send({
-          from: EMAIL_FROM,
-          to: recipient.email,
-          subject,
-          text: textBody,
-        });
-        console.log(`[EMAIL SENT] Connection request to ${recipient.email}`);
-      } catch (err) {
-        console.error('[EMAIL ERROR]', err);
-      }
-    } else {
-      console.log(`\n======================================================`);
-      console.log(`[EMAIL DISPATCHED] (Mock)`);
-      console.log(`To: ${recipient.email}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Template: [Dark Theme / Avora Branding]`);
-      console.log(`------------------------------------------------------`);
-      console.log(`Body: ${textBody}`);
-      console.log(`======================================================\n`);
+    try {
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: recipient.email,
+        subject,
+        text: textBody,
+      });
+      console.log(`[EMAIL SENT] Connection request to ${recipient.email}`);
+    } catch (err) {
+      console.error('[EMAIL ERROR]', err);
+      return res.status(500).json({ success: false, error: 'Email delivery failed' });
     }
   }
   
@@ -93,27 +96,17 @@ app.post('/api/notify/connection-accepted', async (req, res) => {
     const subject = `Connection Accepted!`;
     const textBody = `${accepterProfile?.name || 'Someone'} accepted your connection request.\n\n[ Start Chatting ]`;
     
-    if (process.env.RESEND_API_KEY) {
-      try {
-        await resend.emails.send({
-          from: EMAIL_FROM,
-          to: recipient.email,
-          subject,
-          text: textBody,
-        });
-        console.log(`[EMAIL SENT] Connection accepted to ${recipient.email}`);
-      } catch (err) {
-        console.error('[EMAIL ERROR]', err);
-      }
-    } else {
-      console.log(`\n======================================================`);
-      console.log(`[EMAIL DISPATCHED] (Mock)`);
-      console.log(`To: ${recipient.email}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Template: [Dark Theme / Avora Branding]`);
-      console.log(`------------------------------------------------------`);
-      console.log(`Body: ${textBody}`);
-      console.log(`======================================================\n`);
+    try {
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: recipient.email,
+        subject,
+        text: textBody,
+      });
+      console.log(`[EMAIL SENT] Connection accepted to ${recipient.email}`);
+    } catch (err) {
+      console.error('[EMAIL ERROR]', err);
+      return res.status(500).json({ success: false, error: 'Email delivery failed' });
     }
   }
   
@@ -153,7 +146,7 @@ app.post('/api/notify/message', async (req, res) => {
 });
 
 // Endpoint for processing batched emails (To be called by Vercel Cron or similar scheduler)
-app.post('/api/cron/process-emails', async (req, res) => {
+app.all('/api/cron/process-emails', async (req, res) => {
   const { data: pending } = await supabase.from('pending_email_notifications').select('*').order('created_at', { ascending: true });
   
   if (!pending || pending.length === 0) {
@@ -176,27 +169,16 @@ app.post('/api/cron/process-emails', async (req, res) => {
        const subject = `You have ${msgs.length} new messages on Avora`;
        const textBody = `You have unread messages waiting for you.\n\n[ View Messages ]`;
        
-       if (process.env.RESEND_API_KEY) {
-         try {
-           await resend.emails.send({
-             from: EMAIL_FROM,
-             to: recipient.email,
-             subject,
-             text: textBody,
-           });
-           console.log(`[EMAIL SENT] Batched messages to ${recipient.email}`);
-         } catch (err) {
-           console.error('[EMAIL ERROR]', err);
-         }
-       } else {
-         console.log(`\n======================================================`);
-         console.log(`[EMAIL DISPATCHED] (Mock)`);
-         console.log(`To: ${recipient.email}`);
-         console.log(`Subject: ${subject}`);
-         console.log(`Template: [Dark Theme / Avora Branding]`);
-         console.log(`------------------------------------------------------`);
-         console.log(`Body: ${textBody}`);
-         console.log(`======================================================\n`);
+       try {
+         await resend.emails.send({
+           from: EMAIL_FROM,
+           to: recipient.email,
+           subject,
+           text: textBody,
+         });
+         console.log(`[EMAIL SENT] Batched messages to ${recipient.email}`);
+       } catch (err) {
+         console.error('[EMAIL ERROR]', err);
        }
        
        // Delete processed messages
@@ -223,27 +205,17 @@ app.post('/api/notify/meeting', async (req, res) => {
     const subject = `Meeting Update on Avora`;
     const textBody = `${senderProfile?.name || 'Someone'} ${action} a meeting.\n\n[ View Meeting ]`;
     
-    if (process.env.RESEND_API_KEY) {
-      try {
-        await resend.emails.send({
-          from: EMAIL_FROM,
-          to: recipient.email,
-          subject,
-          text: textBody,
-        });
-        console.log(`[EMAIL SENT] Meeting update to ${recipient.email}`);
-      } catch (err) {
-        console.error('[EMAIL ERROR]', err);
-      }
-    } else {
-      console.log(`\n======================================================`);
-      console.log(`[EMAIL DISPATCHED] (Mock)`);
-      console.log(`To: ${recipient.email}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Template: [Dark Theme / Avora Branding]`);
-      console.log(`------------------------------------------------------`);
-      console.log(`Body: ${textBody}`);
-      console.log(`======================================================\n`);
+    try {
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: recipient.email,
+        subject,
+        text: textBody,
+      });
+      console.log(`[EMAIL SENT] Meeting update to ${recipient.email}`);
+    } catch (err) {
+      console.error('[EMAIL ERROR]', err);
+      return res.status(500).json({ success: false, error: 'Email delivery failed' });
     }
   }
   
