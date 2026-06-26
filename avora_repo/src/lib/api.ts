@@ -286,6 +286,7 @@ export const api = {
   },
 
   async sendMessage(connectionId: string, toUserId: string, content: string) {
+     console.log("STEP 1 - sendMessage entered");
      const { data: user } = await supabase.auth.getUser();
      if (!user.user) {
        console.log('[API] sendMessage - No authenticated user found');
@@ -305,10 +306,12 @@ export const api = {
        console.error('[API] sendMessage error:', error);
        throw error;
      }
+     console.log("STEP 2 - Message inserted");
      console.log('[API] sendMessage - Insert successful:', data);
 
      // Exclude meeting invites from general message notifications if needed
      if (!content.startsWith('[MEETING_INVITE]')) {
+       console.log("STEP 3 - About to call /api/email-alerts/message");
        console.log('[API] Preparing to fetch /api/email-alerts/message');
        try {
          const res = await fetch('/api/email-alerts/message', {
@@ -316,6 +319,7 @@ export const api = {
            headers: { 'Content-Type': 'application/json' },
            body: JSON.stringify({ recipientId: toUserId, senderId: user.user.id, content })
          });
+         console.log("STEP 4 - Fetch completed", res.status);
          console.log('[API] fetch /api/email-alerts/message returned status:', res.status);
          const text = await res.text();
          console.log('[API] fetch /api/email-alerts/message response body:', text);
