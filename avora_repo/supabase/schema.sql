@@ -233,6 +233,55 @@ CREATE POLICY "Users can update meetings where they are involved."
   ON meetings FOR UPDATE
   USING ( auth.uid() = founder_id OR auth.uid() = builder_id );
 
+-- Create notification_settings table
+CREATE TABLE IF NOT EXISTS notification_settings (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE PRIMARY KEY,
+  connection_requests BOOLEAN DEFAULT true,
+  messages BOOLEAN DEFAULT true,
+  meetings BOOLEAN DEFAULT true,
+  product_updates BOOLEAN DEFAULT true,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Create user_presence table for online tracking
+CREATE TABLE IF NOT EXISTS user_presence (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE PRIMARY KEY,
+  last_seen TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Create pending emails table for batching
+CREATE TABLE IF NOT EXISTS pending_email_notifications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  recipient_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+GRANT SELECT, INSERT, UPDATE ON TABLE notification_settings TO authenticated;
+GRANT SELECT ON TABLE notification_settings TO anon;
+GRANT ALL ON TABLE notification_settings TO service_role;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE user_presence TO authenticated;
+GRANT SELECT ON TABLE user_presence TO anon;
+GRANT ALL ON TABLE user_presence TO service_role;
+
+GRANT ALL ON TABLE pending_email_notifications TO service_role;
+
+ALTER TABLE notification_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_presence ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pending_email_notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own notification settings."
+  ON notification_settings FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage their own presence."
+  ON user_presence FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
 -- Subscriptions for Realtime
 begin;
   drop publication if exists supabase_realtime;

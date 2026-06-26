@@ -36,6 +36,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!session) return;
+    const pingInterval = setInterval(() => {
+      fetch('/api/ping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: session.user.id })
+      }).catch(console.error);
+    }, 5 * 60 * 1000);
+    return () => clearInterval(pingInterval);
+  }, [session]);
+
+  useEffect(() => {
     let mounted = true;
     
     console.log('[Auth] Initializing AppContext...');
@@ -47,6 +59,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           if (session) {
             setSession(session);
+
+            // Initial ping
+            fetch('/api/ping', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: session.user.id })
+            }).catch(console.error);
+
             await loadData(session.user.id, false);
           } else {
             setSession(null);

@@ -224,14 +224,30 @@ export const api = {
        throw error;
      }
      console.log('[API] requestConnection - Insert successful:', data);
+
+     // Notify Server
+     fetch('/api/notify/connection', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ recipientId: toUserId, senderId: user.user.id, introMessage })
+     }).catch(console.error);
+
      return data;
   },
 
   async updateConnection(id: string, status: 'accepted' | 'rejected') {
-     const { error } = await supabase.from('connections').update({ status }).eq('id', id);
+     const { data, error } = await supabase.from('connections').update({ status }).eq('id', id).select().single();
      if (error) {
        console.error('[API] updateConnection error:', error);
        throw error;
+     }
+
+     if (status === 'accepted' && data) {
+       fetch('/api/notify/connection-accepted', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ recipientId: data.sender_id, accepterId: data.receiver_id })
+       }).catch(console.error);
      }
   },
 
@@ -290,6 +306,16 @@ export const api = {
        throw error;
      }
      console.log('[API] sendMessage - Insert successful:', data);
+
+     // Exclude meeting invites from general message notifications if needed
+     if (!content.startsWith('[MEETING_INVITE]')) {
+       fetch('/api/notify/message', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ recipientId: toUserId, senderId: user.user.id, content })
+       }).catch(console.error);
+     }
+
      return data;
   },
 
@@ -345,6 +371,12 @@ export const api = {
     const meetingMessage = `[MEETING_INVITE]: I've proposed a meeting on ${date} at ${time}.`;
     await this.sendMessage(connectionId, builderId, meetingMessage);
 
+    fetch('/api/notify/meeting', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipientId: builderId, senderId: user.user.id, action: 'requested' })
+    }).catch(console.error);
+
     return {
       id: data.id,
       connectionId: data.connection_id,
@@ -358,6 +390,44 @@ export const api = {
   },
 
   async updateMeeting(meetingId: string, status: 'accepted' | 'declined'): Promise<void> {
-    await supabase.from('meetings').update({ status }).eq('id', meetingId);
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) return;
+    
+    const { data, error } = await supabase.from('meetings').update({ status }).eq('id', meetingId).select().single();
+    if (error) {
+      console.error('[API] updateMeeting error:', error);
+      throw error;
+    }
+
+    if (data) {
+      const recipientId = data.founder_id === user.user.id ? data.builder_id : data.founder_id;
+      fetch('/api/notify/meeting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId, senderId: user.user.id, action: status })
+      }).catch(console.error);
+    }
+  },
+
+  async getNotificationSettings(): Promise<any> {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) return null;
+    const { data } = await supabase.from('notification_settings').select('*').eq('user_id', user.user.id).single();
+    return data || {
+      connection_requests: true,
+      messages: true,
+      meetings: true,
+      product_updates: true
+    };
+  },
+
+  async updateNotificationSettings(settings: any): Promise<void> {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) return;
+    await supabase.from('notification_settings').upsert({
+      user_id: user.user.id,
+      ...settings,
+      updated_at: new Date().toISOString()
+    });
   }
 };
