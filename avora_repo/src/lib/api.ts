@@ -226,7 +226,7 @@ export const api = {
      console.log('[API] requestConnection - Insert successful:', data);
 
      // Notify Server
-     fetch('/api/notify/connection', {
+     fetch('/api/email-alerts/connection', {
        method: 'POST',
        headers: { 'Content-Type': 'application/json' },
        body: JSON.stringify({ recipientId: toUserId, senderId: user.user.id, introMessage })
@@ -243,7 +243,7 @@ export const api = {
      }
 
      if (status === 'accepted' && data) {
-       fetch('/api/notify/connection-accepted', {
+       fetch('/api/email-alerts/connection-accepted', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({ recipientId: data.sender_id, accepterId: data.receiver_id })
@@ -309,11 +309,22 @@ export const api = {
 
      // Exclude meeting invites from general message notifications if needed
      if (!content.startsWith('[MEETING_INVITE]')) {
-       fetch('/api/notify/message', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ recipientId: toUserId, senderId: user.user.id, content })
-       }).catch(console.error);
+       console.log('[API] Preparing to fetch /api/email-alerts/message');
+       try {
+         const res = await fetch('/api/email-alerts/message', {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ recipientId: toUserId, senderId: user.user.id, content })
+         });
+         console.log('[API] fetch /api/email-alerts/message returned status:', res.status);
+         const text = await res.text();
+         console.log('[API] fetch /api/email-alerts/message response body:', text);
+       } catch (err) {
+         console.error('[API] fetch /api/email-alerts/message threw an error:', err);
+       }
+       console.log('[API] fetch /api/email-alerts/message has completed');
+     } else {
+       console.log('[API] Message content starts with [MEETING_INVITE], skipping /api/email-alerts/message');
      }
 
      return data;
@@ -371,7 +382,7 @@ export const api = {
     const meetingMessage = `[MEETING_INVITE]: I've proposed a meeting on ${date} at ${time}.`;
     await this.sendMessage(connectionId, builderId, meetingMessage);
 
-    fetch('/api/notify/meeting', {
+    fetch('/api/email-alerts/meeting', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ recipientId: builderId, senderId: user.user.id, action: 'requested' })
@@ -401,7 +412,7 @@ export const api = {
 
     if (data) {
       const recipientId = data.founder_id === user.user.id ? data.builder_id : data.founder_id;
-      fetch('/api/notify/meeting', {
+      fetch('/api/email-alerts/meeting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipientId, senderId: user.user.id, action: status })

@@ -46,7 +46,7 @@ app.post('/api/ping', async (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/notify/connection', async (req, res) => {
+app.post('/api/email-alerts/connection', async (req, res) => {
   const { recipientId, senderId, introMessage } = req.body;
   
   // Check settings
@@ -85,7 +85,7 @@ app.post('/api/notify/connection', async (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/notify/connection-accepted', async (req, res) => {
+app.post('/api/email-alerts/connection-accepted', async (req, res) => {
   const { recipientId, accepterId } = req.body;
   
   const { data: settings } = await supabase.from('notification_settings').select('*').eq('user_id', recipientId).single();
@@ -121,7 +121,7 @@ app.post('/api/notify/connection-accepted', async (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/notify/message', async (req, res) => {
+app.post('/api/email-alerts/message', async (req, res) => {
   const { recipientId, senderId, content } = req.body;
   
   const { data: settings } = await supabase.from('notification_settings').select('*').eq('user_id', recipientId).single();
@@ -170,7 +170,7 @@ app.post('/api/notify/message', async (req, res) => {
   res.json({ success: true, sent: true });
 });
 
-app.post('/api/notify/meeting', async (req, res) => {
+app.post('/api/email-alerts/meeting', async (req, res) => {
   const { recipientId, senderId, action } = req.body;
   
   const { data: settings } = await supabase.from('notification_settings').select('*').eq('user_id', recipientId).single();
