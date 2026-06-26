@@ -14,11 +14,10 @@ export default function Discovery() {
 
   // Filter out the current user, show opposite type only
   const potentialMatches = useMemo(() => {
-    console.log('[Discover] Total profiles fetched:', profiles.length);
+    console.log('[Discover Audit] 3. Total profile count (profiles array):', profiles.length);
     if (!currentUser) return [];
     
-    console.log('[Discover] Current user ID:', currentUser.id);
-    console.log('[Discover] Current user type:', currentUser.userType);
+    console.log('[Discover Audit] Current user:', currentUser.id, currentUser.name, currentUser.userType);
     
     const unseen = profiles.filter(p => {
       let isExcluded = false;
@@ -26,21 +25,18 @@ export default function Discovery() {
       
       if (p.id === currentUser.id) {
         isExcluded = true;
-        reason = 'Same as current user';
-      } else if (p.userType === currentUser.userType) {
-        isExcluded = true;
-        reason = `Same user type (${p.userType})`;
+        reason = 'current user';
       }
       
       if (isExcluded) {
-        console.log(`[Discover] Filtered out profile ID: ${p.id}. Reason: ${reason}`);
+        console.log(`[Discover Audit] 5. Profile removed: ID=${p.id}, Name=${p.name}, Role=${p.userType}, Reason=${reason}`);
         return false;
       }
       
       return true;
     });
 
-    console.log('[Discover] Profiles after filtering:', unseen.length);
+    console.log('[Discover Audit] 6. potentialMatches.length after every filtering step:', unseen.length);
 
     // Sort by matching score (mocking it by reason count for now)
     return unseen.sort((a, b) => {
@@ -50,6 +46,9 @@ export default function Discovery() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentProfile = potentialMatches[currentIndex];
+
+  console.log('[Discover Audit] 7. currentIndex:', currentIndex);
+  console.log('[Discover Audit] 8. Expression that disables Next:', `currentIndex === potentialMatches.length - 1 (${currentIndex === potentialMatches.length - 1})`);
 
   const [showIntroModal, setShowIntroModal] = useState(false);
   const [introMessage, setIntroMessage] = useState('');
