@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   photo_url TEXT,
   bio TEXT,
   college TEXT,
-  location TEXT,
+  city TEXT,
   linkedin_url TEXT
 );
 
@@ -76,9 +76,11 @@ CREATE TABLE IF NOT EXISTS founders (
   startup_name TEXT NOT NULL,
   startup_description TEXT,
   startup_stage TEXT NOT NULL,
-  problem_statement TEXT NOT NULL,
   industry TEXT,
-  looking_for TEXT[]
+  looking_for TEXT[],
+  website TEXT,
+  commitment TEXT,
+  equity TEXT
 );
 
 -- Secure role-level permissions
@@ -107,13 +109,14 @@ CREATE POLICY "Users can update their own founder profile."
 -- Create Builders table
 CREATE TABLE IF NOT EXISTS builders (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE PRIMARY KEY,
+  interests TEXT[],
   skills TEXT[],
   github_url TEXT,
   leetcode_url TEXT,
   portfolio_url TEXT,
   resume_url TEXT,
   current_projects TEXT,
-  availability TEXT
+  commitment TEXT
 );
 
 -- Secure role-level permissions
@@ -149,6 +152,11 @@ CREATE TABLE connections (
   UNIQUE(sender_id, receiver_id)
 );
 
+-- Secure role-level permissions
+GRANT SELECT, INSERT, UPDATE ON TABLE connections TO authenticated;
+GRANT SELECT ON TABLE connections TO anon;
+GRANT ALL ON TABLE connections TO service_role;
+
 ALTER TABLE connections ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Connections are viewable by participants."
@@ -174,6 +182,11 @@ CREATE TABLE messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+-- Secure role-level permissions
+GRANT SELECT, INSERT, UPDATE ON TABLE messages TO authenticated;
+GRANT SELECT ON TABLE messages TO anon;
+GRANT ALL ON TABLE messages TO service_role;
+
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Messages are viewable by participants."
@@ -184,9 +197,9 @@ CREATE POLICY "Users can insert messages where they are sender."
   ON messages FOR INSERT
   WITH CHECK ( auth.uid() = sender_id );
 
-CREATE POLICY "Users can update their own messages."
+CREATE POLICY "Users can update their own messages or mark received as read."
   ON messages FOR UPDATE
-  USING ( auth.uid() = sender_id );
+  USING ( auth.uid() = sender_id OR auth.uid() = receiver_id );
 
 
 -- Create Meetings table
@@ -201,6 +214,11 @@ CREATE TABLE meetings (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+-- Secure role-level permissions
+GRANT SELECT, INSERT, UPDATE ON TABLE meetings TO authenticated;
+GRANT SELECT ON TABLE meetings TO anon;
+GRANT ALL ON TABLE meetings TO service_role;
+
 ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Meetings are viewable by participants."
@@ -214,6 +232,45 @@ CREATE POLICY "Users can insert meetings where they are founder."
 CREATE POLICY "Users can update meetings where they are involved."
   ON meetings FOR UPDATE
   USING ( auth.uid() = founder_id OR auth.uid() = builder_id );
+
+-- Create notification_settings table
+CREATE TABLE IF NOT EXISTS notification_settings (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE PRIMARY KEY,
+  connection_requests BOOLEAN DEFAULT true,
+  messages BOOLEAN DEFAULT true,
+  meetings BOOLEAN DEFAULT true,
+  product_updates BOOLEAN DEFAULT true,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Create user_presence table for online tracking
+CREATE TABLE IF NOT EXISTS user_presence (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE PRIMARY KEY,
+  last_seen TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+
+
+GRANT SELECT, INSERT, UPDATE ON TABLE notification_settings TO authenticated;
+GRANT SELECT ON TABLE notification_settings TO anon;
+GRANT ALL ON TABLE notification_settings TO service_role;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE user_presence TO authenticated;
+GRANT SELECT ON TABLE user_presence TO anon;
+GRANT ALL ON TABLE user_presence TO service_role;
+
+ALTER TABLE notification_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_presence ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own notification settings."
+  ON notification_settings FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage their own presence."
+  ON user_presence FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- Subscriptions for Realtime
 begin;

@@ -5,7 +5,7 @@ import { useAppContext } from '../context/AppContext';
 import { UserType, UserProfile } from '../types';
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
-import { ArrowRight, ChevronLeft, Rocket, UserCircle, Upload, Loader2 } from 'lucide-react';
+import { ArrowRight, ChevronLeft, Rocket, UserCircle, Upload, Loader2, Plus, X, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const SKILLS_LIST = ['AI/ML', 'Python', 'Web Development', 'Mobile Development', 'UI/UX Design', 'Marketing', 'Sales', 'Finance', 'Product Management'];
@@ -32,6 +32,18 @@ export default function Onboarding() {
 
   const [isRestoring, setIsRestoring] = useState(true);
 
+  // Builder step 3 UI state
+  const [builderLinks, setBuilderLinks] = useState<{id: string; type: string; url: string}[]>([]);
+  const [showAddLink, setShowAddLink] = useState(false);
+  const [newLinkType, setNewLinkType] = useState('LinkedIn');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  
+  const [showAddSkill, setShowAddSkill] = useState(false);
+  const [newSkill, setNewSkill] = useState('');
+
+  const LINK_TYPES = ['LinkedIn', 'GitHub', 'Portfolio', 'Behance', 'Dribbble', 'Personal Website', 'Resume', 'Other'];
+
+
   useEffect(() => {
     if (!authId) return; // Wait for authId
     
@@ -45,7 +57,16 @@ export default function Onboarding() {
         
         if (parsed.userId === authId) {
           if (parsed.formData || parsed.step > 1) {
-            if (parsed.formData) setFormData(prev => ({ ...prev, ...parsed.formData }));
+            if (parsed.formData) {
+              setFormData(prev => ({ ...prev, ...parsed.formData }));
+              if (parsed.formData.userType === 'founder' && parsed.formData.lookingFor) {
+                const otherRoles = parsed.formData.lookingFor.filter((r: string) => !['AI Engineer', 'Backend', 'Frontend', 'Design', 'Marketing', 'Sales'].includes(r));
+                if (otherRoles.length > 0) {
+                  setIsOtherRoleSelected(true);
+                  setCustomRolesText(otherRoles.join(', '));
+                }
+              }
+            }
             if (parsed.step) setStep(parsed.step);
             setShowRestoredNotice(true);
             setTimeout(() => setShowRestoredNotice(false), 4000);
@@ -127,6 +148,10 @@ export default function Onboarding() {
     setStep(s => s - 1);
   };
 
+  const predefinedRoles = ['AI Engineer', 'Backend', 'Frontend', 'Design', 'Marketing', 'Sales'];
+  const [isOtherRoleSelected, setIsOtherRoleSelected] = useState(false);
+  const [customRolesText, setCustomRolesText] = useState('');
+
   const handleComplete = async () => {
     if (!authId) return;
     
@@ -136,11 +161,33 @@ export default function Onboarding() {
       userPhoto = `https://ui-avatars.com/api/?name=${formData.name || 'U'}&background=random`;
     }
 
+    const standardRoles = (formData.lookingFor || []).filter(r => predefinedRoles.includes(r));
+    let additionalRoles: string[] = [];
+    if (isOtherRoleSelected && customRolesText.trim().length > 0) {
+       additionalRoles = customRolesText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    }
+    const finalLookingFor = formData.userType === 'founder' 
+      ? Array.from(new Set([...standardRoles, ...additionalRoles]))
+      : formData.lookingFor;
+
     const newUser: UserProfile = {
       id: authId,
       ...formData as UserProfile,
+      lookingFor: finalLookingFor,
       photoUrl: userPhoto,
     };
+    
+    if (newUser.userType === 'builder') {
+      const linkedins = builderLinks.filter(l => l.type === 'LinkedIn').map(l => l.url);
+      const githubs = builderLinks.filter(l => l.type === 'GitHub').map(l => l.url);
+      const resumes = builderLinks.filter(l => l.type === 'Resume').map(l => l.url);
+      const others = builderLinks.filter(l => !['LinkedIn', 'GitHub', 'Resume'].includes(l.type)).map(l => `${l.type}: ${l.url}`);
+      
+      if (linkedins.length > 0) newUser.linkedin = linkedins[0];
+      if (githubs.length > 0) newUser.github = githubs[0];
+      if (resumes.length > 0) newUser.resumeUrl = resumes[0];
+      if (others.length > 0) newUser.portfolio = others.join(' | ');
+    }
     
     try {
       console.log('[Onboarding] Completing profile with:', newUser);
@@ -285,37 +332,172 @@ export default function Onboarding() {
           );
         } else {
           return (
-            <div className="flex flex-col space-y-4">
-              <h2 className="text-2xl font-bold text-white mb-2">Optional Additions (Builder)</h2>
-              <p className="text-sm text-white/60 mb-2">Add more details or skip to discover now.</p>
-              
-              <input type="url" placeholder="GitHub URL" value={formData.github || ''} onChange={e => updateForm({ github: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
-              <input type="url" placeholder="LeetCode URL" value={formData.leetcode || ''} onChange={e => updateForm({ leetcode: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
-              <input type="url" placeholder="Portfolio Website" value={formData.portfolio || ''} onChange={e => updateForm({ portfolio: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
-              <input type="url" placeholder="Resume Upload URL" value={formData.resumeUrl || ''} onChange={e => updateForm({ resumeUrl: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
-              
-              <div className="pt-2">
-                <p className="text-xs text-white/50 mb-2">Skills (Optional)</p>
-                <div className="flex flex-wrap gap-2">
-                  {SKILLS_LIST.map(skill => {
-                    const selected = formData.skills?.includes(skill);
-                    return (
-                      <button key={skill} onClick={() => updateForm({ skills: selected ? formData.skills?.filter(s => s !== skill) : [...(formData.skills || []), skill] })} className={cn("px-4 py-2 rounded-full border text-xs transition-all", selected ? "bg-[#3B82F6] text-white border-[#3B82F6]" : "bg-white/5 text-white/70 border-white/10 hover:border-white/30")}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-2 flex flex-col space-y-8">
+                <div className="text-center md:text-left mb-2">
+                  <h2 className="text-3xl font-bold text-white mb-3">Almost Done!</h2>
+                  <p className="text-sm text-white/60">Add a few details to help founders understand you better. You can always edit your profile later.</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-medium text-white mb-1">Professional Links</h3>
+                    <p className="text-xs text-white/50 mb-3">Add any links that represent your work or experience.</p>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {builderLinks.map(link => (
+                      <div key={link.id} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg pl-3 pr-1 py-1.5 text-sm">
+                         <span className="text-white/60 font-medium">{link.type}:</span>
+                         <span className="text-white truncate max-w-[150px]">{link.url}</span>
+                         <button onClick={() => setBuilderLinks(prev => prev.filter(l => l.id !== link.id))} className="p-1 hover:bg-white/10 rounded-md text-white/40 hover:text-white transition-colors">
+                           <X className="w-3.5 h-3.5" />
+                         </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {showAddLink ? (
+                    <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                       <select value={newLinkType} onChange={e => setNewLinkType(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6] sm:w-1/3">
+                         {LINK_TYPES.map(type => <option key={type} value={type} className="bg-[#0f172a]">{type}</option>)}
+                       </select>
+                       <input type="url" placeholder="https://" value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6] flex-1" />
+                       <div className="flex gap-2">
+                         <button onClick={() => {
+                           if (newLinkUrl.trim()) {
+                             setBuilderLinks(prev => [...prev, { id: Date.now().toString(), type: newLinkType, url: newLinkUrl.trim() }]);
+                             setNewLinkUrl('');
+                             setShowAddLink(false);
+                           }
+                         }} className="px-4 py-2 bg-[#3B82F6] text-white rounded-xl font-medium shrink-0">Add</button>
+                         <button onClick={() => setShowAddLink(false)} className="px-4 py-2 bg-white/5 text-white rounded-xl font-medium hover:bg-white/10 shrink-0">Cancel</button>
+                       </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => setShowAddLink(true)} className="flex items-center gap-2 text-sm font-medium text-[#3B82F6] hover:text-[#2563EB] transition-colors py-2">
+                      <Plus className="w-4 h-4" /> Add Link
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div>
+                    <h3 className="text-lg font-medium text-white mb-1">Skills</h3>
+                    <p className="text-xs text-white/50 mb-3">Add the skills that best describe you.</p>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {formData.skills?.map(skill => (
+                      <div key={skill} className="flex items-center gap-1 bg-[#3B82F6] text-white border border-[#3B82F6] rounded-full pl-3 pr-1 py-1 text-xs">
+                        {skill}
+                        <button onClick={() => updateForm({ skills: formData.skills?.filter(s => s !== skill) })} className="p-1 hover:bg-black/20 rounded-full transition-colors">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {SKILLS_LIST.filter(s => !formData.skills?.includes(s)).map(skill => (
+                      <button key={skill} onClick={() => updateForm({ skills: [...(formData.skills || []), skill] })} className="px-3 py-1.5 rounded-full border bg-white/5 text-white/70 border-white/10 hover:border-white/30 text-xs transition-all">
                         {skill}
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
+
+                  {showAddSkill ? (
+                    <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                      <input type="text" placeholder="Custom skill (e.g. Flutter)" value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newSkill.trim()) {
+                          if (!formData.skills?.includes(newSkill.trim())) {
+                            updateForm({ skills: [...(formData.skills || []), newSkill.trim()] });
+                          }
+                          setNewSkill('');
+                          setShowAddSkill(false);
+                        }
+                      }} className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-[#3B82F6] text-sm sm:max-w-[200px]" />
+                      <div className="flex gap-2">
+                        <button onClick={() => {
+                          if (newSkill.trim() && !formData.skills?.includes(newSkill.trim())) {
+                             updateForm({ skills: [...(formData.skills || []), newSkill.trim()] });
+                          }
+                          setNewSkill('');
+                          setShowAddSkill(false);
+                        }} className="px-3 py-2 bg-[#3B82F6] text-white rounded-xl text-sm font-medium">Add</button>
+                        <button onClick={() => setShowAddSkill(false)} className="px-3 py-2 bg-white/5 text-white rounded-xl text-sm font-medium hover:bg-white/10">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => setShowAddSkill(true)} className="flex items-center gap-1 text-xs font-medium text-[#3B82F6] hover:text-[#2563EB] transition-colors py-1">
+                      <Plus className="w-3.5 h-3.5" /> Add Custom Skill
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div>
+                    <h3 className="text-lg font-medium text-white mb-1">About You</h3>
+                    <p className="text-xs text-white/50 mb-3">Tell founders about yourself, your background, and what you're looking to build or achieve.</p>
+                  </div>
+                  <div className="relative">
+                    <textarea 
+                      placeholder="Write a short introduction about yourself..." 
+                      value={formData.bio || ''} 
+                      onChange={e => updateForm({ bio: e.target.value })} 
+                      rows={5} 
+                      maxLength={500}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6] resize-none text-sm" 
+                    />
+                    <div className="absolute bottom-3 right-3 text-[10px] text-white/30">
+                      {(formData.bio || '').length} / 500
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-white/5">
+                   <button onClick={handleComplete} className="flex-1 px-6 py-3 rounded-xl bg-white/5 text-white font-medium hover:bg-white/10 transition-colors">
+                     Skip for now
+                   </button>
+                   <button 
+                     onClick={handleComplete} 
+                     disabled={!(formData.skills?.length) || !formData.bio?.trim()}
+                     className="flex-[2] px-6 py-3 rounded-xl bg-[#3B82F6] text-white font-medium transition-colors disabled:opacity-50"
+                   >
+                     Complete & Start Discovering &rarr;
+                   </button>
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
-                 <button onClick={handleComplete} className="flex-1 px-6 py-3 rounded-xl bg-white/5 text-white font-medium hover:bg-white/10 transition-colors">
-                   Skip
-                 </button>
-                 <button onClick={handleComplete} className="flex-1 px-6 py-3 rounded-xl bg-[#3B82F6] text-white font-medium transition-colors">
-                   Complete
-                 </button>
+              {/* Information Card on the Right */}
+              <div className="hidden md:block">
+                <div className="bg-[#1e293b]/50 border border-white/10 rounded-2xl p-6 sticky top-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-full bg-[#3B82F6]/10 flex items-center justify-center">
+                      <Info className="w-5 h-5 text-[#3B82F6]" />
+                    </div>
+                    <h3 className="text-white font-semibold">Why complete this?</h3>
+                  </div>
+                  <ul className="space-y-4">
+                    <li className="flex items-start gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] mt-2 shrink-0" />
+                      <p className="text-sm text-white/70">Get discovered by relevant founders.</p>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] mt-2 shrink-0" />
+                      <p className="text-sm text-white/70">Increase your chances of getting matched.</p>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] mt-2 shrink-0" />
+                      <p className="text-sm text-white/70">Build trust with a complete profile.</p>
+                    </li>
+                  </ul>
+                  
+                  <div className="mt-8 pt-6 border-t border-white/10">
+                    <p className="text-xs text-white/40 leading-relaxed text-center">
+                      You can edit all of these details later from your profile.
+                    </p>
+                  </div>
+                </div>
               </div>
+
             </div>
           );
         }
@@ -329,6 +511,7 @@ export default function Onboarding() {
               
               <textarea placeholder="Startup Description" value={formData.startupDescription || ''} onChange={e => updateForm({ startupDescription: e.target.value })} rows={3} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6] resize-none" />
               <input type="text" placeholder="Industry" value={formData.industry || ''} onChange={e => updateForm({ industry: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
+              <input type="text" placeholder="Equity Available (e.g. 5%)" value={formData.equity || ''} onChange={e => updateForm({ equity: e.target.value })} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6]" />
               
               <div className="pt-2">
                 <p className="text-xs text-white/50 mb-2">Team Needs (Optional)</p>
@@ -337,7 +520,26 @@ export default function Onboarding() {
                     const selected = formData.lookingFor?.includes(role);
                     return <button key={role} onClick={() => updateForm({ lookingFor: selected ? formData.lookingFor?.filter(s => s !== role) : [...(formData.lookingFor || []), role] })} className={cn("px-4 py-2 rounded-full border text-xs transition-all", selected ? "bg-[#3B82F6] text-white border-[#3B82F6]" : "bg-white/5 text-white/70 border-white/10 hover:border-white/30")}>{role}</button>;
                   })}
+                  <button 
+                    key="Other" 
+                    onClick={() => setIsOtherRoleSelected(!isOtherRoleSelected)} 
+                    className={cn("px-4 py-2 rounded-full border text-xs transition-all", isOtherRoleSelected ? "bg-[#3B82F6] text-white border-[#3B82F6]" : "bg-white/5 text-white/70 border-white/10 hover:border-white/30")}
+                  >
+                    Other
+                  </button>
                 </div>
+                {isOtherRoleSelected && (
+                  <div className="mt-3">
+                    <input 
+                      type="text" 
+                      placeholder="Specify the role you are looking for" 
+                      value={customRolesText} 
+                      onChange={e => setCustomRolesText(e.target.value)} 
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#3B82F6] text-sm"
+                    />
+                    <p className="text-[10px] text-white/40 mt-1 pl-1">Examples: Legal Advisor, Hardware Engineer, Product Manager (comma separated)</p>
+                  </div>
+                )}
               </div>
                
               <div className="flex gap-3 pt-4">
@@ -374,7 +576,7 @@ export default function Onboarding() {
         )}
       </AnimatePresence>
 
-      <div className="w-full max-w-md">
+      <div className={cn("w-full transition-all duration-500", step === 3 && formData.userType === 'builder' ? "max-w-4xl" : "max-w-md")}>
         <div className="flex justify-between items-center mb-8 h-6">
           {step > 1 ? (
             <button onClick={prevStep} className="flex items-center text-sm font-medium text-white/50 hover:text-white transition-colors">

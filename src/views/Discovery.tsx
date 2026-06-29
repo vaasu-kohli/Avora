@@ -1,34 +1,54 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAppContext } from '../context/AppContext';
 import { getMatchReasons } from '../lib/matching';
-import { X, Heart, MapPin, Briefcase, GraduationCap, Github, Linkedin, ExternalLink, Check, Send, Info, MessageCircle } from 'lucide-react';
+import { X, Heart, MapPin, Briefcase, GraduationCap, Github, Linkedin, ExternalLink, Check, Send, Info, MessageCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { UserProfile } from '../types';
 
 export default function Discovery() {
+  const navigate = useNavigate();
   const { currentUser, profiles, connections, sendConnectionRequest, seenProfiles, markSeen } = useAppContext();
   const [showDetail, setShowDetail] = useState(false);
 
-  // Filter out the current user, those already seen, and active connections
+  // Filter out the current user, show opposite type only
   const potentialMatches = useMemo(() => {
+    console.log('[Discover Audit] 3. Total profile count (profiles array):', profiles.length);
     if (!currentUser) return [];
     
-    const unseen = profiles.filter(p => 
-      p.id !== currentUser.id && 
-      p.userType !== currentUser.userType && // Only show opposite type
-      !seenProfiles.includes(p.id) &&
-      !connections.some(c => (c.toUserId === p.id && c.fromUserId === currentUser.id) || (c.fromUserId === p.id && c.toUserId === currentUser.id))
-    );
+    console.log('[Discover Audit] Current user:', currentUser.id, currentUser.name, currentUser.userType);
+    
+    const unseen = profiles.filter(p => {
+      let isExcluded = false;
+      let reason = '';
+      
+      if (p.id === currentUser.id) {
+        isExcluded = true;
+        reason = 'current user';
+      }
+      
+      if (isExcluded) {
+        console.log(`[Discover Audit] 5. Profile removed: ID=${p.id}, Name=${p.name}, Role=${p.userType}, Reason=${reason}`);
+        return false;
+      }
+      
+      return true;
+    });
+
+    console.log('[Discover Audit] 6. potentialMatches.length after every filtering step:', unseen.length);
 
     // Sort by matching score (mocking it by reason count for now)
     return unseen.sort((a, b) => {
       return getMatchReasons(currentUser, b).length - getMatchReasons(currentUser, a).length;
     });
-  }, [currentUser, profiles, seenProfiles, connections]);
+  }, [currentUser, profiles]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentProfile = potentialMatches[currentIndex];
+
+  console.log('[Discover Audit] 7. currentIndex:', currentIndex);
+  console.log('[Discover Audit] 8. Expression that disables Next:', `currentIndex === potentialMatches.length - 1 (${currentIndex === potentialMatches.length - 1})`);
 
   const [showIntroModal, setShowIntroModal] = useState(false);
   const [introMessage, setIntroMessage] = useState('');
@@ -48,23 +68,6 @@ export default function Discovery() {
     setShowDetail(false);
     setShowIntroModal(false);
     setIntroMessage('');
-    setTimeout(() => {
-      setCurrentIndex(prev => prev + 1);
-    }, 300);
-  };
-
-  const handleSwipe = (direction: 'left' | 'right') => {
-    if (!currentProfile) return;
-    
-    if (direction === 'left') {
-      markSeen(currentProfile.id);
-      setShowDetail(false);
-      setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-      }, 300);
-    } else {
-      performConnection();
-    }
   };
 
   if (!currentUser) return null;
@@ -139,14 +142,11 @@ export default function Discovery() {
                             Stage: {currentProfile.startupStage}
                           </span>
                         )}
-                        {currentProfile.commitment && (
-                          <span className="px-2.5 py-1 rounded-md bg-white/5 text-white/70 text-[10px] font-bold uppercase tracking-wider border border-white/10">
-                            {currentProfile.commitment}
+                        {currentProfile.equity && currentProfile.equity !== '0' && currentProfile.equity !== '0%' && (
+                          <span className="px-2.5 py-1 rounded-md bg-[#10B981]/10 text-[#10B981] text-[10px] font-bold uppercase tracking-wider border border-[#10B981]/20">
+                            Equity: {currentProfile.equity}
                           </span>
                         )}
-                        <span className="px-2.5 py-1 rounded-md bg-[#10B981]/10 text-[#10B981] text-[10px] font-bold uppercase tracking-wider border border-[#10B981]/20">
-                          Equity Available
-                        </span>
                         {currentProfile.city && (
                           <span className="px-2.5 py-1 rounded-md bg-white/5 text-white/70 text-[10px] font-bold uppercase tracking-wider border border-white/10 flex items-center gap-1">
                             <MapPin className="w-3 h-3" /> {currentProfile.city}
@@ -240,27 +240,40 @@ export default function Discovery() {
         <div className="flex flex-col gap-3 mt-6 z-10 w-full px-4">
           <div className="flex items-center gap-3 w-full justify-center">
             <button 
-              onClick={() => { setShowDetail(false); handleSwipe('left'); }}
-              className="flex items-center justify-center gap-2 px-4 h-12 rounded-full bg-white/5 backdrop-blur-lg border border-white/10 text-white/50 hover:bg-white/10 hover:text-white transition-all font-medium flex-1"
+              onClick={() => { setShowDetail(false); setCurrentIndex(prev => prev - 1); }}
+              disabled={currentIndex === 0}
+              className={cn("flex items-center justify-center gap-2 px-4 h-12 rounded-full transition-all font-medium flex-1", currentIndex === 0 ? "bg-white/5 border border-white/5 text-white/20 cursor-not-allowed" : "bg-white/5 backdrop-blur-lg border border-white/10 text-white/50 hover:bg-white/10 hover:text-white")}
             >
-              <X className="w-4 h-4" /> Pass
+              <ArrowLeft className="w-4 h-4" /> Previous
             </button>
             
             <button 
-              onClick={() => setShowIntroModal(true)}
-              className="flex items-center justify-center gap-2 px-4 h-12 rounded-full bg-[#0B1120] border border-[#14B8A6]/30 text-[#14B8A6] hover:bg-[#14B8A6]/10 transition-all font-medium flex-1"
+              onClick={() => {
+                if (hasConnection) navigate('/messages');
+              }}
+              disabled={!hasConnection}
+              className={cn("flex items-center justify-center gap-2 px-4 h-12 rounded-full transition-all font-medium flex-1", hasConnection ? "bg-[#0B1120] border border-[#14B8A6]/30 text-[#14B8A6] hover:bg-[#14B8A6]/10" : "bg-white/5 border border-white/5 text-white/30 cursor-not-allowed")}
             >
               <MessageCircle className="w-4 h-4" /> Message
             </button>
 
             <button 
               onClick={() => { setShowDetail(false); performConnection(); }}
-              className="flex items-center justify-center gap-2 px-4 h-12 rounded-full bg-[#3B82F6] text-white hover:bg-blue-600 transition-transform hover:scale-105 font-bold tracking-wide shadow-[0_0_20px_rgba(59,130,246,0.3)] flex-1"
+              disabled={hasConnection}
+              className={cn("flex items-center justify-center gap-2 px-4 h-12 rounded-full font-bold tracking-wide flex-1 transition-all", hasConnection ? "bg-white/10 text-white/50 cursor-not-allowed" : "bg-[#3B82F6] text-white hover:bg-blue-600 transition-transform hover:scale-105 shadow-[0_0_20px_rgba(59,130,246,0.3)]")}
             >
               <Heart className="w-4 h-4" /> {hasConnection ? 'Connected' : 'Connect'}
             </button>
+            
+            <button 
+              onClick={() => { setShowDetail(false); setCurrentIndex(prev => prev + 1); }}
+              disabled={currentIndex === potentialMatches.length - 1}
+              className={cn("flex items-center justify-center gap-2 px-4 h-12 rounded-full transition-all font-medium flex-1", currentIndex === potentialMatches.length - 1 ? "bg-white/5 border border-white/5 text-white/20 cursor-not-allowed" : "bg-white/5 backdrop-blur-lg border border-white/10 text-white/50 hover:bg-white/10 hover:text-white")}
+            >
+              Next <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
-          {currentProfile.userType === 'founder' && (
+          {currentUser.userType === 'founder' && (
             <button className="flex items-center justify-center gap-2 w-full h-10 rounded-full bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all text-xs font-semibold">
               Book Meeting
             </button>
@@ -339,6 +352,7 @@ function ProfileDetailView({ profile, matchReasons, onClose }: { profile: UserPr
               <div className="flex flex-wrap gap-2 text-xs">
                 {profile.industry && <span className="px-2 py-1 rounded bg-white/5 text-white/70">{profile.industry}</span>}
                 {profile.startupStage && <span className="px-2 py-1 rounded bg-[#14B8A6]/10 text-[#14B8A6]">{profile.startupStage}</span>}
+                {profile.equity && profile.equity !== '0' && profile.equity !== '0%' && <span className="px-2 py-1 rounded bg-[#10B981]/10 text-[#10B981]">Equity: {profile.equity}</span>}
               </div>
             </div>
           </div>

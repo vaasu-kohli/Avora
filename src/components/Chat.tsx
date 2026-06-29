@@ -28,6 +28,14 @@ export default function ChatPage({ partnerId, onClose }: { partnerId: string, on
     (c.fromUserId === partnerId && c.toUserId === currentUser?.id)
   );
 
+  const { markMessagesAsRead } = useAppContext();
+
+  useEffect(() => {
+    if (connection && currentUser) {
+      markMessagesAsRead(connection.id);
+    }
+  }, [connection?.id, thread.length]);
+
   const activeMeetings = meetings.filter(m => m.connectionId === connection?.id).sort((a,b) => a.createdAt - b.createdAt);
 
   useEffect(() => {
