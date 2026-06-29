@@ -18,22 +18,40 @@ app.use(express.json());
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error("FATAL: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.");
-  process.exit(1);
+let supabase: ReturnType<typeof createClient> | any = null;
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+} else {
+  console.warn("WARNING: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are missing. Some API routes will fail.");
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.RESEND_EMAIL_FROM;
 
-if (!resendApiKey || !EMAIL_FROM) {
-  console.error("FATAL: RESEND_API_KEY and RESEND_EMAIL_FROM are required.");
-  process.exit(1);
+let resend: Resend | any = null;
+if (resendApiKey) {
+  resend = new Resend(resendApiKey);
+} else {
+  console.warn("WARNING: RESEND_API_KEY is missing. Email alerts will fail.");
 }
 
-const resend = new Resend(resendApiKey);
+app.get('/api', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.use('/api', (req, res, next) => {
+  if (req.path === '/' || req.path === '') return next();
+  
+  if (!supabase) {
+    return res.status(500).json({ success: false, error: "Server configuration error: Missing Supabase environment variables." });
+  }
+  
+  if (req.path.startsWith('/email-alerts') && (!resend || !EMAIL_FROM)) {
+    return res.status(500).json({ success: false, error: "Server configuration error: Missing Resend environment variables." });
+  }
+  
+  next();
+});
 
 app.post('/api/ping', async (req, res) => {
   const { userId } = req.body;
